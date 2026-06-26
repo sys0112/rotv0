@@ -16,13 +16,18 @@ def cmd_update(args):
     total = latest_remote - latest_local
     print(f"크롤링 시작: {latest_local + 1}회차 ~ {latest_remote}회차 (총 {total}개)")
 
+    saved = 0
+    failed = 0
     for round_no in range(latest_local + 1, latest_remote + 1):
         draw = crawler.fetch_draw(round_no)
         if draw:
             db.save_draw(draw["round"], draw["date"], draw["numbers"], draw["bonus"])
-        print(f"  진행 중: {round_no}/{latest_remote}회차", end="\r")
+            saved += 1
+        else:
+            failed += 1
+        print(f"  진행 중: {round_no}/{latest_remote}회차", end="\r", flush=True)
 
-    print(f"\n완료! {total}개 회차 업데이트됨")
+    print(f"\n완료! {saved}개 회차 저장됨" + (f" ({failed}개 실패)" if failed else ""))
 
 
 def cmd_stats(args):

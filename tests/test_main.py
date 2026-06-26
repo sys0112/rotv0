@@ -28,6 +28,24 @@ def test_cmd_update_already_latest(capsys):
     assert "최신 상태" in out
 
 
+def test_cmd_update_crawls_new_rounds(capsys):
+    mock_draw = {
+        "round": 1151,
+        "date": "2026-06-01",
+        "numbers": [1, 2, 3, 4, 5, 6],
+        "bonus": 7,
+    }
+    with patch("main.db.init_db"), \
+         patch("main.db.get_latest_round", return_value=1150), \
+         patch("main.crawler.fetch_latest_round", return_value=1151), \
+         patch("main.crawler.fetch_draw", return_value=mock_draw), \
+         patch("main.db.save_draw") as mock_save:
+        main.cmd_update(Namespace())
+    out = capsys.readouterr().out
+    assert "완료" in out
+    mock_save.assert_called_once_with(1151, "2026-06-01", [1, 2, 3, 4, 5, 6], 7)
+
+
 def test_cmd_stats_no_data_shows_message(capsys):
     with patch("main.db.init_db"), \
          patch("main.db.get_all_draws", return_value=[]):
@@ -42,7 +60,7 @@ def test_cmd_stats_shows_table(capsys, sample_draws):
         main.cmd_stats(Namespace())
     out = capsys.readouterr().out
     assert "출현 빈도" in out
-    assert "60회차" in out
+    assert "전체 60회차 기준" in out
 
 
 def test_cmd_pick_outputs_correct_set_count(capsys, sample_draws):
