@@ -1,3 +1,4 @@
+import contextlib
 import sqlite3
 from pathlib import Path
 
@@ -5,47 +6,44 @@ DB_PATH = str(Path(__file__).parent / "lotto.db")
 
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS draws (
-            round  INTEGER PRIMARY KEY,
-            date   TEXT NOT NULL,
-            n1     INTEGER NOT NULL,
-            n2     INTEGER NOT NULL,
-            n3     INTEGER NOT NULL,
-            n4     INTEGER NOT NULL,
-            n5     INTEGER NOT NULL,
-            n6     INTEGER NOT NULL,
-            bonus  INTEGER NOT NULL
-        )
-    """)
-    conn.commit()
-    conn.close()
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS draws (
+                round  INTEGER PRIMARY KEY,
+                date   TEXT NOT NULL,
+                n1     INTEGER NOT NULL,
+                n2     INTEGER NOT NULL,
+                n3     INTEGER NOT NULL,
+                n4     INTEGER NOT NULL,
+                n5     INTEGER NOT NULL,
+                n6     INTEGER NOT NULL,
+                bonus  INTEGER NOT NULL
+            )
+        """)
+        conn.commit()
 
 
 def save_draw(round_no: int, date: str, numbers: list, bonus: int):
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute(
-        "INSERT OR IGNORE INTO draws VALUES (?,?,?,?,?,?,?,?,?)",
-        (round_no, date, numbers[0], numbers[1], numbers[2],
-         numbers[3], numbers[4], numbers[5], bonus),
-    )
-    conn.commit()
-    conn.close()
+    if len(numbers) != 6:
+        raise ValueError(f"expected 6 numbers, got {len(numbers)}")
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO draws VALUES (?,?,?,?,?,?,?,?,?)",
+            (round_no, date, *numbers, bonus),
+        )
+        conn.commit()
 
 
 def get_latest_round() -> int:
-    conn = sqlite3.connect(DB_PATH)
-    row = conn.execute("SELECT MAX(round) FROM draws").fetchone()
-    conn.close()
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        row = conn.execute("SELECT MAX(round) FROM draws").fetchone()
     return row[0] or 0
 
 
 def get_all_draws() -> list:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    rows = conn.execute("SELECT * FROM draws ORDER BY round").fetchall()
-    conn.close()
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT * FROM draws ORDER BY round").fetchall()
     return [
         {
             "round": r["round"],

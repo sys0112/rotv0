@@ -24,6 +24,7 @@ def test_save_and_retrieve_draw():
     draws = db.get_all_draws()
     assert len(draws) == 1
     assert draws[0]["round"] == 1
+    assert draws[0]["date"] == "2002-12-07"
     assert draws[0]["numbers"] == [10, 23, 29, 33, 37, 40]
     assert draws[0]["bonus"] == 16
 
@@ -43,8 +44,10 @@ def test_get_latest_round_with_data():
 def test_save_draw_ignores_duplicate():
     db.init_db()
     db.save_draw(1, "2002-12-07", [10, 23, 29, 33, 37, 40], 16)
-    db.save_draw(1, "2002-12-07", [10, 23, 29, 33, 37, 40], 16)
-    assert len(db.get_all_draws()) == 1
+    db.save_draw(1, "DIFFERENT", [99, 99, 99, 99, 99, 99], 99)
+    draws = db.get_all_draws()
+    assert len(draws) == 1
+    assert draws[0]["numbers"] == [10, 23, 29, 33, 37, 40]
 
 
 def test_draws_ordered_by_round():
