@@ -3,7 +3,7 @@ import requests
 API_URL = "https://www.dhlottery.co.kr/gameResult.do"
 
 
-def fetch_draw(round_no: int) -> dict:
+def fetch_draw(round_no: int) -> dict | None:
     resp = requests.get(
         API_URL,
         params={"method": "byWin", "drwNo": round_no},
@@ -24,4 +24,7 @@ def fetch_draw(round_no: int) -> dict:
 def fetch_latest_round() -> int:
     resp = requests.get(API_URL, params={"method": "byWin"}, timeout=10)
     resp.raise_for_status()
-    return resp.json()["drwNo"]
+    data = resp.json()
+    if data.get("returnValue") != "success":
+        raise RuntimeError(f"Unexpected API response: {data.get('returnValue')}")
+    return data["drwNo"]

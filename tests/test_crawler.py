@@ -1,4 +1,6 @@
 from unittest.mock import patch, Mock
+import pytest
+import requests as requests_lib
 import crawler
 
 MOCK_SUCCESS = {
@@ -40,7 +42,7 @@ def test_fetch_draw_returns_none_when_fail():
 
 def test_fetch_latest_round():
     mock_resp = Mock()
-    mock_resp.json.return_value = {**MOCK_SUCCESS, "drwNo": 1150}
+    mock_resp.json.return_value = {"returnValue": "success", "drwNo": 1150}
 
     with patch("crawler.requests.get", return_value=mock_resp):
         result = crawler.fetch_latest_round()
@@ -55,6 +57,13 @@ def test_fetch_draw_passes_correct_params():
     with patch("crawler.requests.get", return_value=mock_resp) as mock_get:
         crawler.fetch_draw(42)
 
-    call_kwargs = mock_get.call_args
-    assert call_kwargs[1]["params"]["drwNo"] == 42
-    assert call_kwargs[1]["params"]["method"] == "byWin"
+    assert mock_get.call_args.kwargs["params"]["drwNo"] == 42
+    assert mock_get.call_args.kwargs["params"]["method"] == "byWin"
+
+
+def test_fetch_draw_raises_on_http_error():
+    mock_resp = Mock()
+    mock_resp.raise_for_status.side_effect = requests_lib.HTTPError("404")
+    with patch("crawler.requests.get", return_value=mock_resp):
+        with pytest.raises(requests_lib.HTTPError):
+            crawler.fetch_draw(1)
