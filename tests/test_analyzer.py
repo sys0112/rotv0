@@ -79,3 +79,20 @@ def test_pick_numbers_all_strategies(large_draws):
         assert len(results) == 2
         for nums in results:
             assert len(nums) == 6
+
+
+def test_hot_and_cold_strategies_differ(large_draws):
+    random.seed(0)
+    hot_results = [n for nums in pick_numbers(large_draws, strategy="hot", count=10) for n in nums]
+    random.seed(0)
+    cold_results = [n for nums in pick_numbers(large_draws, strategy="cold", count=10) for n in nums]
+    # Hot and cold strategies should draw from different pools — their outputs should not be identical
+    assert set(hot_results) != set(cold_results)
+
+
+def test_frequency_analysis_empty_draws():
+    stats = frequency_analysis([])
+    assert len(stats) == 45
+    assert all(s["count"] == 0 for s in stats)
+    assert all(s["pct"] == 0.0 for s in stats)
+    assert all(s["last_seen_ago"] == 0 for s in stats)

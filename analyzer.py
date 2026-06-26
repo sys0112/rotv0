@@ -53,6 +53,9 @@ def pick_numbers(draws: list, strategy: str = "mixed", count: int = 5) -> list:
         else:
             hot3 = random.sample(hot_pool, 3)
             cold_remaining = [n for n in cold_pool if n not in hot3]
+            if len(cold_remaining) < 3:
+                all_remaining = [n for n in range(1, 46) if n not in hot3]
+                cold_remaining = all_remaining
             cold3 = random.sample(cold_remaining, 3)
             nums = sorted(hot3 + cold3)
         results.append(nums)
