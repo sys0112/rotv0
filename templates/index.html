@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>로또 번호 분석기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+      background-color: #030508;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(16,185,129,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(5,150,105,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(52,211,153,0.03) 0%, transparent 70%);
+      min-height: 100vh;
+      color: #e2e8f0;
+    }
+
+    /* dot grid overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app { position: relative; z-index: 1; }
+
+    /* Glass cards */
+    .card {
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 16px;
+    }
+    .card-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .card-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #cbd5e1;
+      letter-spacing: 0.01em;
+    }
+
+    /* Lotto balls */
+    .ball {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 13px; color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 5px rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+    .ball-sm { width: 36px; height: 36px; font-size: 11px; }
+    .ball-y { background: radial-gradient(circle at 38% 32%, #fef08a, #ca8a04); }
+    .ball-b { background: radial-gradient(circle at 38% 32%, #93c5fd, #1d4ed8); }
+    .ball-r { background: radial-gradient(circle at 38% 32%, #fca5a5, #b91c1c); }
+    .ball-g { background: radial-gradient(circle at 38% 32%, #cbd5e1, #475569); }
+    .ball-e { background: radial-gradient(circle at 38% 32%, #86efac, #15803d); }
+
+    /* Strategy pills */
+    .strategy-btn {
+      padding: 6px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      color: #64748b; cursor: pointer;
+      transition: all 0.15s;
+      border: none; background: none;
+    }
+    .strategy-btn:hover { color: #cbd5e1; }
+    .strategy-btn.active { background: #059669; color: #fff; box-shadow: 0 0 12px rgba(5,150,105,0.4); }
+
+    /* KPI card accent bars */
+    .kpi-accent { height: 3px; border-radius: 0 0 0 0; margin: -1px -1px 0; border-radius: 16px 16px 0 0; }
+
+    /* Buttons */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, #059669, #047857);
+      color: #fff; font-size: 13px; font-weight: 600;
+      padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(5,150,105,0.35);
+      transition: all 0.15s;
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 24px rgba(5,150,105,0.5); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+    .btn-pick {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff; font-size: 13px; font-weight: 600;
+      padding: 8px 18px; border-radius: 10px; border: none; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+      transition: all 0.15s;
+    }
+    .btn-pick:hover { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 4px 20px rgba(37,99,235,0.45); }
+
+    /* Pick rows */
+    .pick-row {
+      display: flex; align-items: center; gap: 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px; padding: 12px 16px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .pick-row:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
+
+    /* select */
+    select {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #e2e8f0; font-size: 13px;
+      padding: 7px 12px; border-radius: 8px; cursor: pointer;
+      outline: none; appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+      transition: border-color 0.15s;
+    }
+    select:focus { border-color: rgba(16,185,129,0.5); }
+
+    /* Top10 progress bar */
+    .bar-track {
+      height: 3px; border-radius: 99px;
+      background: rgba(255,255,255,0.06); overflow: hidden; margin-top: 4px;
+    }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+
+    /* toast */
+    #toast {
+      transition: opacity 0.25s, transform 0.25s;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; display: inline-block; }
+
+    /* Hover lift */
+    .kpi-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+
+  </style>
+</head>
+<body>
+
+<canvas id="bgCanvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;"></canvas>
+
+<div id="app">
+
+  <!-- Header -->
+  <header style="background:rgba(5,2,8,0.88);border-bottom:1px solid rgba(255,255,255,0.07);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:sticky;top:0;z-index:50;">
+    <div style="max-width:1280px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div style="display:flex;align-items:center;gap:20px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,rgba(16,185,129,0.25),rgba(5,150,105,0.1));border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🎱</div>
+          <div>
+            <h1 style="font-size:16px;font-weight:700;color:#f1f5f9;letter-spacing:-0.01em;line-height:1.2;">로또 번호 분석기</h1>
+            <p id="headerSub" style="font-size:11px;color:#64748b;margin-top:2px;">{{ first_round }}회 ~ {{ latest_round }}회차 수집 (총 {{ total }}회)</p>
+          </div>
+        </div>
+      </div>
+      <button id="updateBtn" onclick="doUpdate()" class="btn-primary">
+        <span id="updateIcon">🔄</span>
+        <span id="updateText">최신 데이터 받기</span>
+      </button>
+    </div>
+  </header>
+
+  <main style="max-width:1280px;margin:0 auto;padding:28px 32px;display:flex;flex-direction:column;gap:20px;">
+
+    <!-- KPI row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+
+      <div class="card kpi-card" style="padding:20px 22px;overflow:hidden;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#10b981,#34d399);border-radius:16px 16px 0 0;"></div>
+        <p style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;">수집된 회차</p>
+        <p id="kpiTotal" style="font-size:28px;font-weight:800;color:#f1f5f9;line-height:1;">{{ total }}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px;">회</span></p>
+      </div>
+
+      <div class="card kpi-card" style="padding:20px 22px;overflow:hidden;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:16px 16px 0 0;"></div>
+        <p style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;">최신 회차</p>
+        <p id="kpiLatest" style="font-size:28px;font-weight:800;color:#f1f5f9;line-height:1;">{{ latest_round }}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px;">회</span></p>
+      </div>
+
+      <div class="card kpi-card" style="padding:20px 22px;overflow:hidden;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:16px 16px 0 0;"></div>
+        <p style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;">🔥 최다 출현</p>
+        <div id="kpiHot" style="display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);"></div>
+        </div>
+      </div>
+
+      <div class="card kpi-card" style="padding:20px 22px;overflow:hidden;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#06b6d4,#67e8f9);border-radius:16px 16px 0 0;"></div>
+        <p style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;">❄️ 최소 출현</p>
+        <div id="kpiCold" style="display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Middle row -->
+    <div style="display:grid;grid-template-columns:3fr 2fr;gap:20px;">
+
+      <!-- Pick card -->
+      <div class="card" style="display:flex;flex-direction:column;">
+        <div class="card-header">
+          <h2>✨ 번호 추천</h2>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="display:flex;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:4px;gap:2px;">
+              <button onclick="setStrategy('hot')" id="btn-hot" class="strategy-btn">🔥 핫</button>
+              <button onclick="setStrategy('cold')" id="btn-cold" class="strategy-btn">❄️ 콜드</button>
+              <button onclick="setStrategy('mixed')" id="btn-mixed" class="strategy-btn active">✨ 혼합</button>
+            </div>
+            <select id="countSelect">
+              <option value="3">3세트</option>
+              <option value="5" selected>5세트</option>
+              <option value="7">7세트</option>
+              <option value="10">10세트</option>
+            </select>
+            <button onclick="doPick()" class="btn-pick">추천받기 →</button>
+          </div>
+        </div>
+        <div id="pickResults" style="padding:20px 24px;display:flex;flex-direction:column;gap:10px;flex:1;">
+          <p style="font-size:13px;color:#475569;">위 버튼을 눌러 번호를 추천받아보세요.</p>
+        </div>
+      </div>
+
+      <!-- Top 10 card -->
+      <div class="card" style="display:flex;flex-direction:column;">
+        <div class="card-header">
+          <h2>🏆 출현 빈도 TOP 10</h2>
+        </div>
+        <div id="topNumbers" style="padding:8px 20px;flex:1;display:flex;flex-direction:column;"></div>
+      </div>
+
+    </div>
+
+    <!-- Chart card -->
+    <div class="card">
+      <div class="card-header">
+        <h2>📊 번호별 출현 빈도</h2>
+        <div style="display:flex;gap:14px;align-items:center;">
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;"><span style="width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block;"></span>1–10</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;"><span style="width:8px;height:8px;border-radius:50%;background:#60a5fa;display:inline-block;"></span>11–20</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;"><span style="width:8px;height:8px;border-radius:50%;background:#f87171;display:inline-block;"></span>21–30</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;"><span style="width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block;"></span>31–40</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b;"><span style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;"></span>41–45</span>
+        </div>
+      </div>
+      <div style="padding:20px 24px;">
+        <div style="position:relative;height:260px;">
+          <canvas id="statsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:rgba(15,23,42,0.95);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(16px);color:#e2e8f0;font-size:13px;padding:12px 20px;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);opacity:0;pointer-events:none;max-width:280px;transform:translateY(8px);z-index:100;"></div>
+
+<script>
+  let currentStrategy = 'mixed';
+  let chart = null;
+
+  function ballClass(n) {
+    if (n <= 10) return 'ball-y';
+    if (n <= 20) return 'ball-b';
+    if (n <= 30) return 'ball-r';
+    if (n <= 40) return 'ball-g';
+    return 'ball-e';
+  }
+  function makeBall(n, small = false) {
+    return `<span class="ball ${small ? 'ball-sm' : ''} ${ballClass(n)}">${String(n).padStart(2,'0')}</span>`;
+  }
+  function chartColor(n) {
+    if (n <= 10) return '#fbbf24';
+    if (n <= 20) return '#60a5fa';
+    if (n <= 30) return '#f87171';
+    if (n <= 40) return '#94a3b8';
+    return '#4ade80';
+  }
+
+  function setStrategy(s) {
+    currentStrategy = s;
+    document.querySelectorAll('.strategy-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + s).classList.add('active');
+  }
+
+  function doPick() {
+    const count = document.getElementById('countSelect').value;
+    fetch(`/api/pick?strategy=${currentStrategy}&count=${count}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { showToast('❌ ' + data.error); return; }
+        const container = document.getElementById('pickResults');
+        container.innerHTML = data.sets.map((nums, i) => `
+          <div class="pick-row">
+            <span style="font-size:11px;color:#475569;font-weight:700;font-variant-numeric:tabular-nums;width:16px;text-align:center;flex-shrink:0;">${i+1}</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">${nums.map(n => makeBall(n)).join('')}</div>
+          </div>`).join('');
+      })
+      .catch(() => showToast('❌ 오류가 발생했습니다'));
+  }
+
+  function doUpdate() {
+    const btn = document.getElementById('updateBtn');
+    btn.disabled = true;
+    document.getElementById('updateIcon').innerHTML = '<span class="spin">⏳</span>';
+    document.getElementById('updateText').textContent = '업데이트 중...';
+
+    fetch('/api/update', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { showToast('❌ ' + data.error); return; }
+        if (data.saved === 0) {
+          showToast('✅ 이미 최신 상태입니다');
+        } else {
+          showToast(`✅ ${data.saved}개 회차 업데이트!`);
+          document.getElementById('headerSub').textContent = `${data.first_round}회 ~ ${data.latest}회차 수집 (총 ${data.total}회)`;
+          document.getElementById('kpiTotal').innerHTML = `${data.total}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px;">회</span>`;
+          document.getElementById('kpiLatest').innerHTML = `${data.latest}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px;">회</span>`;
+          loadStats();
+        }
+      })
+      .catch(() => showToast('❌ 업데이트 실패'))
+      .finally(() => {
+        btn.disabled = false;
+        document.getElementById('updateIcon').textContent = '🔄';
+        document.getElementById('updateText').textContent = '최신 데이터 받기';
+      });
+  }
+
+  function loadStats() {
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(rawStats => {
+        const sorted = [...rawStats].sort((a, b) => a.number - b.number);
+
+        if (chart) chart.destroy();
+        const ctx = document.getElementById('statsChart').getContext('2d');
+        chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: sorted.map(s => s.number),
+            datasets: [{
+              data: sorted.map(s => s.count),
+              backgroundColor: sorted.map(s => chartColor(s.number) + 'cc'),
+              hoverBackgroundColor: sorted.map(s => chartColor(s.number)),
+              borderRadius: 4,
+              borderSkipped: false,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: 'rgba(6,13,27,0.95)',
+                borderColor: 'rgba(255,255,255,0.1)',
+                borderWidth: 1,
+                padding: 10,
+                titleColor: '#94a3b8',
+                bodyColor: '#f1f5f9',
+                callbacks: {
+                  title: ctx => `${ctx[0].label}번`,
+                  label: ctx => ` 출현 ${ctx.raw}회`
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: { color: '#475569', font: { size: 9 }, maxRotation: 0 },
+                grid: { color: 'rgba(255,255,255,0.03)' },
+                border: { color: 'rgba(255,255,255,0.06)' }
+              },
+              y: {
+                ticks: { color: '#475569', font: { size: 10 } },
+                grid: { color: 'rgba(255,255,255,0.04)' },
+                border: { color: 'rgba(255,255,255,0.06)' }
+              }
+            }
+          }
+        });
+
+        // KPI
+        const byCount = [...rawStats].sort((a, b) => b.count - a.count);
+        const hot = byCount[0];
+        const cold = byCount[byCount.length - 1];
+        document.getElementById('kpiHot').innerHTML =
+          `${makeBall(hot.number, true)}<div><p style="font-size:20px;font-weight:800;color:#f1f5f9;line-height:1;">${hot.number}번</p><p style="font-size:11px;color:#64748b;margin-top:2px;">${hot.count}회 출현</p></div>`;
+        document.getElementById('kpiCold').innerHTML =
+          `${makeBall(cold.number, true)}<div><p style="font-size:20px;font-weight:800;color:#f1f5f9;line-height:1;">${cold.number}번</p><p style="font-size:11px;color:#64748b;margin-top:2px;">${cold.count}회 출현</p></div>`;
+
+        // TOP 10
+        const top10 = byCount.slice(0, 10);
+        const maxCount = top10[0].count;
+        const medals = ['🥇','🥈','🥉'];
+        document.getElementById('topNumbers').innerHTML = top10.map((s, i) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;${i < 9 ? 'border-bottom:1px solid rgba(255,255,255,0.05);' : ''}">
+            <span style="width:20px;text-align:center;font-size:${i < 3 ? '14' : '11'}px;${i >= 3 ? 'color:#475569;font-weight:700;' : ''};flex-shrink:0;">${medals[i] || (i+1)}</span>
+            ${makeBall(s.number, true)}
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:13px;font-weight:600;color:#e2e8f0;">${s.number}번</span>
+                <span style="font-size:11px;color:#64748b;font-variant-numeric:tabular-nums;">${s.count}회</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${Math.round(s.count / maxCount * 100)}%;background:${chartColor(s.number)};opacity:0.8;"></div>
+              </div>
+            </div>
+          </div>`).join('');
+      });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.opacity = '1';
+    t.style.transform = 'translateY(0)';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => {
+      t.style.opacity = '0';
+      t.style.transform = 'translateY(8px)';
+    }, 3000);
+  }
+
+  loadStats();
+
+  // Stellar Web background
+  (function () {
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    function resize() {
+      canvas.width = innerWidth; canvas.height = innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const N = 80;
+    const nodes = Array.from({ length: N }, () => ({
+      x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+      r: 1 + Math.random() * 1.5,
+    }));
+
+    function tick() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#030508';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (const n of nodes) {
+        n.x += n.vx; n.y += n.vy;
+        if (n.x < 0 || n.x > canvas.width)  n.vx *= -1;
+        if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+      }
+
+      for (let i = 0; i < N; i++) {
+        for (let j = i + 1; j < N; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 150) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(16,185,129,${(1 - dist / 150) * 0.09})`;
+            ctx.lineWidth = 0.6;
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.stroke();
+          }
+        }
+        ctx.beginPath();
+        ctx.arc(nodes[i].x, nodes[i].y, nodes[i].r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(16,185,129,0.22)';
+        ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+  })();
+</script>
+</body>
+</html>

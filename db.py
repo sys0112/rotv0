@@ -1,8 +1,9 @@
 import contextlib
+import os
 import sqlite3
 from pathlib import Path
 
-DB_PATH = str(Path(__file__).parent / "lotto.db")
+DB_PATH = os.environ.get("ROTTO_DB_PATH", str(Path(__file__).parent / "lotto.db"))
 
 
 def init_db():

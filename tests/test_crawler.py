@@ -3,25 +3,35 @@ import pytest
 import requests as requests_lib
 import crawler
 
-MOCK_SUCCESS = {
-    "returnValue": "success",
-    "drwNo": 1,
-    "drwNoDate": "2002-12-07",
-    "drwtNo1": 10,
-    "drwtNo2": 23,
-    "drwtNo3": 29,
-    "drwtNo4": 33,
-    "drwtNo5": 37,
-    "drwtNo6": 40,
-    "bnusNo": 16,
+_MOCK_ITEM = {
+    "ltEpsd": 1,
+    "ltRflYmd": "20021207",
+    "tm1WnNo": 10,
+    "tm2WnNo": 23,
+    "tm3WnNo": 29,
+    "tm4WnNo": 33,
+    "tm5WnNo": 37,
+    "tm6WnNo": 40,
+    "bnsWnNo": 16,
+}
+
+_MOCK_RESPONSE = {
+    "resultCode": "00",
+    "resultMessage": "success",
+    "data": {"list": [_MOCK_ITEM]},
 }
 
 
-def test_fetch_draw_parses_response():
-    mock_resp = Mock()
-    mock_resp.json.return_value = MOCK_SUCCESS
+def _make_mock_session(payload):
+    session = Mock()
+    resp = Mock()
+    resp.json.return_value = payload
+    session.get.return_value = resp
+    return session
 
-    with patch("crawler.requests.get", return_value=mock_resp):
+
+def test_fetch_draw_parses_response():
+    with patch("crawler.build_session", return_value=_make_mock_session(_MOCK_RESPONSE)):
         result = crawler.fetch_draw(1)
 
     assert result["round"] == 1
@@ -30,11 +40,8 @@ def test_fetch_draw_parses_response():
     assert result["bonus"] == 16
 
 
-def test_fetch_draw_returns_none_when_fail():
-    mock_resp = Mock()
-    mock_resp.json.return_value = {"returnValue": "fail"}
-
-    with patch("crawler.requests.get", return_value=mock_resp):
+def test_fetch_draw_returns_none_when_round_not_in_response():
+    with patch("crawler.build_session", return_value=_make_mock_session(_MOCK_RESPONSE)):
         result = crawler.fetch_draw(9999)
 
     assert result is None
@@ -42,28 +49,33 @@ def test_fetch_draw_returns_none_when_fail():
 
 def test_fetch_latest_round():
     mock_resp = Mock()
-    mock_resp.json.return_value = {"returnValue": "success", "drwNo": 1150}
+    mock_resp.text = (
+        '<li class="option-il" data-value="1229">1229회</li>'
+        '<li class="option-il" data-value="1228">1228회</li>'
+    )
 
     with patch("crawler.requests.get", return_value=mock_resp):
         result = crawler.fetch_latest_round()
 
-    assert result == 1150
+    assert result == 1229
 
 
-def test_fetch_draw_passes_correct_params():
-    mock_resp = Mock()
-    mock_resp.json.return_value = MOCK_SUCCESS
+def test_fetch_draw_passes_correct_round():
+    mock_session = _make_mock_session(_MOCK_RESPONSE)
+    with patch("crawler.build_session", return_value=mock_session):
+        crawler.fetch_draw(1)
 
-    with patch("crawler.requests.get", return_value=mock_resp) as mock_get:
-        crawler.fetch_draw(42)
-
-    assert mock_get.call_args.kwargs["params"]["drwNo"] == 42
-    assert mock_get.call_args.kwargs["params"]["method"] == "byWin"
+    params = mock_session.get.call_args.kwargs["params"]
+    assert params["srchLtEpsd"] == 1
+    assert params["srchDir"] == "center"
 
 
 def test_fetch_draw_raises_on_http_error():
+    mock_session = Mock()
     mock_resp = Mock()
     mock_resp.raise_for_status.side_effect = requests_lib.HTTPError("404")
-    with patch("crawler.requests.get", return_value=mock_resp):
+    mock_session.get.return_value = mock_resp
+
+    with patch("crawler.build_session", return_value=mock_session):
         with pytest.raises(requests_lib.HTTPError):
             crawler.fetch_draw(1)

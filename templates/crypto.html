@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>코인 분석기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+      background-color: #030508;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(234,179,8,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(245,158,11,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(251,191,36,0.03) 0%, transparent 70%);
+      min-height: 100vh;
+      color: #e2e8f0;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.022) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app { position: relative; z-index: 1; }
+
+    .card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 16px;
+    }
+    .card-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .card-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #cbd5e1;
+      letter-spacing: 0.01em;
+    }
+
+    .kpi-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+
+    .coin-row {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 1fr;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .coin-row:last-child { border-bottom: none; }
+    .coin-row:hover { background: rgba(255,255,255,0.04); }
+    .coin-row.selected { background: rgba(251,191,36,0.07); border-left: 2px solid rgba(251,191,36,0.5); }
+
+    .coin-row-head {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 1fr;
+      gap: 12px;
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .col-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .sig {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
+      padding: 3px 10px; border-radius: 6px;
+    }
+    .sig-buy  { background: rgba(16,185,129,0.18); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+    .sig-sell { background: rgba(239,68,68,0.18);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+    .sig-hold { background: rgba(100,116,139,0.2); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
+
+    .rsi-bar {
+      height: 5px; border-radius: 99px;
+      background: rgba(255,255,255,0.07); overflow: hidden;
+      margin-top: 4px; width: 80px;
+    }
+    .rsi-fill { height: 100%; border-radius: 99px; transition: width 0.5s ease; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+
+    #toast { transition: opacity 0.25s, transform 0.25s; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; display: inline-block; }
+
+    .btn-refresh {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(251,191,36,0.12); color: #fbbf24;
+      font-size: 13px; font-weight: 600;
+      padding: 9px 18px; border-radius: 10px;
+      border: 1px solid rgba(251,191,36,0.25); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-refresh:hover { background: rgba(251,191,36,0.2); }
+
+    @media (max-width: 800px) {
+      .coin-row, .coin-row-head {
+        grid-template-columns: 2fr 1.5fr 1fr 1fr;
+      }
+      .col-volume, .col-rsi { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bgCanvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;"></canvas>
+
+<div id="app">
+
+  <!-- Header -->
+  <header style="background:rgba(3,5,8,0.88);border-bottom:1px solid rgba(255,255,255,0.07);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:sticky;top:0;z-index:50;">
+    <div style="max-width:1280px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div style="display:flex;align-items:center;gap:20px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,rgba(251,191,36,0.22),rgba(245,158,11,0.1));border:1px solid rgba(251,191,36,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">₿</div>
+          <div>
+            <h1 style="font-size:16px;font-weight:700;color:#f1f5f9;letter-spacing:-0.01em;line-height:1.2;">코인 기술적 분석</h1>
+            <p id="headerSub" style="font-size:11px;color:#64748b;margin-top:2px;">업비트 기준 실시간 데이터</p>
+          </div>
+        </div>
+        <nav style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:4px;">
+          <a href="/" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;font-size:13px;font-weight:500;color:#64748b;text-decoration:none;transition:color 0.15s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">🎱 로또</a>
+          <a href="/crypto" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;font-size:13px;font-weight:600;background:rgba(251,191,36,0.16);color:#fbbf24;border:1px solid rgba(251,191,36,0.25);text-decoration:none;">₿ 코인</a>
+        </nav>
+      </div>
+      <button onclick="loadTickers()" class="btn-refresh">
+        <span id="refreshIcon">🔄</span>
+        <span id="refreshText">새로고침</span>
+      </button>
+    </div>
+  </header>
+
+  <main style="max-width:1280px;margin:0 auto;padding:28px 32px;display:flex;flex-direction:column;gap:20px;">
+
+    <!-- KPI row -->
+    <div id="kpiRow" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+      <div class="card kpi-card" style="padding:20px 22px;overflow:hidden;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:16px 16px 0 0;"></div>
+        <p style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;">비트코인</p>
+        <p id="kpiBtcPrice" style="font-size:22px;font-weight:800;color:#f1f5f9;line-height:1;">—</p>
+        <p id="kpiBtcChange" style="font-size:12px;color:#64748b;margin-top:6px;">—</p>
+      </div>
+      <div class="card kpi-card" style="padding:20px 22px;overflow:hidden;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#60a5fa,#818cf8);border-radius:16px 16px 0 0;"></div>
+        <p style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;">이더리움</p>
+        <p id="kpiEthPrice" style="font-size:22px;font-weight:800;color:#f1f5f9;line-height:1;">—</p>
+        <p id="kpiEthChange" style="font-size:12px;color:#64748b;margin-top:6px;">—</p>
+      </div>
+      <div class="card kpi-card" style="padding:20px 22px;overflow:hidden;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#34d399,#10b981);border-radius:16px 16px 0 0;"></div>
+        <p style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;">🏆 상승률 1위</p>
+        <p id="kpiTopGainerName" style="font-size:15px;font-weight:700;color:#f1f5f9;line-height:1.3;">—</p>
+        <p id="kpiTopGainerRate" style="font-size:20px;font-weight:800;color:#34d399;margin-top:4px;line-height:1;">—</p>
+      </div>
+      <div class="card kpi-card" style="padding:20px 22px;overflow:hidden;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#f87171,#ef4444);border-radius:16px 16px 0 0;"></div>
+        <p style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;">📉 하락률 1위</p>
+        <p id="kpiTopLoserName" style="font-size:15px;font-weight:700;color:#f1f5f9;line-height:1.3;">—</p>
+        <p id="kpiTopLoserRate" style="font-size:20px;font-weight:800;color:#f87171;margin-top:4px;line-height:1;">—</p>
+      </div>
+    </div>
+
+    <!-- Main row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" id="mainRow">
+
+      <!-- Coin list -->
+      <div class="card" style="display:flex;flex-direction:column;">
+        <div class="card-header">
+          <h2>📊 코인 목록</h2>
+          <span style="font-size:11px;color:#475569;">클릭하면 분석 차트 표시</span>
+        </div>
+        <div class="coin-row-head">
+          <span class="col-label">코인</span>
+          <span class="col-label">현재가</span>
+          <span class="col-label">24h 변동</span>
+          <span class="col-label col-rsi">RSI</span>
+          <span class="col-label col-volume">거래대금(억)</span>
+          <span class="col-label">시그널</span>
+        </div>
+        <div id="coinList" style="flex:1;overflow-y:auto;max-height:480px;">
+          <div style="padding:24px;text-align:center;color:#475569;font-size:13px;">로딩 중...</div>
+        </div>
+      </div>
+
+      <!-- Analysis panel -->
+      <div class="card" style="display:flex;flex-direction:column;">
+        <div class="card-header">
+          <h2 id="analysisTitle">📈 기술적 분석</h2>
+          <span id="analysisSignalBadge"></span>
+        </div>
+        <div id="analysisPanel" style="padding:20px 24px;flex:1;display:flex;flex-direction:column;gap:16px;">
+          <p style="font-size:13px;color:#475569;margin:auto;">왼쪽 코인을 클릭하면 분석 결과가 표시됩니다.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<div id="toast" style="position:fixed;bottom:24px;right:24px;background:rgba(15,23,42,0.95);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(16px);color:#e2e8f0;font-size:13px;padding:12px 20px;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);opacity:0;pointer-events:none;max-width:280px;transform:translateY(8px);z-index:100;"></div>
+
+<script>
+  let analysisChart = null;
+  let selectedCoin = null;
+  let coinAnalysisCache = {};
+
+  function fmt(n) {
+    if (n >= 1e8) return (n / 1e8).toFixed(2) + '억';
+    if (n >= 1e4) return (n / 1e4).toFixed(0) + '만';
+    return n.toLocaleString('ko-KR');
+  }
+
+  function fmtPrice(p) {
+    if (p >= 1e6) return p.toLocaleString('ko-KR') + '원';
+    if (p >= 1000) return p.toLocaleString('ko-KR') + '원';
+    return p.toLocaleString('ko-KR', {maximumFractionDigits: 4}) + '원';
+  }
+
+  function changeColor(rate) {
+    if (rate > 0) return '#34d399';
+    if (rate < 0) return '#f87171';
+    return '#64748b';
+  }
+
+  function sigClass(s) {
+    if (s === 'BUY')  return 'sig sig-buy';
+    if (s === 'SELL') return 'sig sig-sell';
+    return 'sig sig-hold';
+  }
+
+  function rsiColor(rsi) {
+    if (rsi === null) return '#475569';
+    if (rsi < 35) return '#34d399';
+    if (rsi > 65) return '#f87171';
+    return '#fbbf24';
+  }
+
+  function loadTickers() {
+    const icon = document.getElementById('refreshIcon');
+    const txt = document.getElementById('refreshText');
+    icon.innerHTML = '<span class="spin">⏳</span>';
+    txt.textContent = '로딩 중...';
+    coinAnalysisCache = {};
+
+    fetch('/api/crypto/tickers')
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { showToast('❌ ' + data.error); return; }
+        renderTickers(data);
+        updateKPIs(data);
+        document.getElementById('headerSub').textContent =
+          '업비트 기준 실시간 데이터 · ' + new Date().toLocaleTimeString('ko-KR');
+      })
+      .catch(() => showToast('❌ 데이터 로드 실패'))
+      .finally(() => {
+        icon.textContent = '🔄';
+        txt.textContent = '새로고침';
+      });
+  }
+
+  function renderTickers(data) {
+    document.getElementById('coinList').innerHTML = data.map(c => `
+      <div class="coin-row ${c.market === selectedCoin ? 'selected' : ''}"
+           onclick="selectCoin('${c.market}')" id="row-${c.market.replace('-','_')}">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fbbf24;flex-shrink:0;">${c.symbol.slice(0,3)}</div>
+          <div>
+            <p style="font-size:13px;font-weight:600;color:#e2e8f0;">${c.name}</p>
+            <p style="font-size:10px;color:#475569;">${c.symbol}</p>
+          </div>
+        </div>
+        <div>
+          <p style="font-size:13px;font-weight:700;color:#f1f5f9;">${fmtPrice(c.price)}</p>
+        </div>
+        <div>
+          <p style="font-size:13px;font-weight:600;color:${changeColor(c.change_rate)};">
+            ${c.change_rate >= 0 ? '+' : ''}${c.change_rate}%
+          </p>
+        </div>
+        <div class="col-rsi" id="rsi-${c.market.replace('-','_')}" style="color:#475569;font-size:12px;">—</div>
+        <div class="col-volume" style="font-size:12px;color:#64748b;">${c.volume.toLocaleString()}</div>
+        <div id="sig-${c.market.replace('-','_')}"><span class="sig sig-hold" style="opacity:0.4;">—</span></div>
+      </div>`).join('');
+
+    // Load analysis for all coins in background
+    data.forEach(c => loadAnalysisBackground(c.market));
+  }
+
+  function loadAnalysisBackground(coin) {
+    fetch(`/api/crypto/analysis?coin=${coin}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) return;
+        coinAnalysisCache[coin] = d;
+        const key = coin.replace('-','_');
+        const rsiEl = document.getElementById('rsi-' + key);
+        const sigEl = document.getElementById('sig-' + key);
+        if (rsiEl) rsiEl.innerHTML = d.rsi !== null
+          ? `<span style="color:${rsiColor(d.rsi)};font-weight:600;">${d.rsi}</span>`
+          : '—';
+        if (sigEl) sigEl.innerHTML = `<span class="${sigClass(d.signal)}">${d.signal}</span>`;
+        if (coin === selectedCoin) renderAnalysis(d);
+      })
+      .catch(() => {});
+  }
+
+  function selectCoin(coin) {
+    document.querySelectorAll('.coin-row').forEach(r => r.classList.remove('selected'));
+    const key = coin.replace('-','_');
+    const row = document.getElementById('row-' + key);
+    if (row) row.classList.add('selected');
+    selectedCoin = coin;
+
+    if (coinAnalysisCache[coin]) {
+      renderAnalysis(coinAnalysisCache[coin]);
+    } else {
+      document.getElementById('analysisPanel').innerHTML =
+        '<p style="font-size:13px;color:#475569;margin:auto;">분석 중...</p>';
+      document.getElementById('analysisTitle').textContent = '📈 기술적 분석';
+      document.getElementById('analysisSignalBadge').innerHTML = '';
+    }
+  }
+
+  function renderAnalysis(d) {
+    document.getElementById('analysisTitle').textContent = `📈 ${d.name} 기술적 분석`;
+    document.getElementById('analysisSignalBadge').innerHTML =
+      `<span class="${sigClass(d.signal)}" style="font-size:13px;padding:5px 14px;">${d.signal}</span>`;
+
+    const rsiPct = d.rsi !== null ? d.rsi : 50;
+    const rsiColorVal = rsiColor(d.rsi);
+    const ma20diff = d.ma20 ? ((d.price - d.ma20) / d.ma20 * 100).toFixed(1) : null;
+    const ma60diff = d.ma60 ? ((d.price - d.ma60) / d.ma60 * 100).toFixed(1) : null;
+
+    document.getElementById('analysisPanel').innerHTML = `
+      <!-- Price + MAs -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;">
+          <p style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:0.07em;font-weight:600;margin-bottom:6px;">현재가</p>
+          <p style="font-size:16px;font-weight:800;color:#f1f5f9;">${fmtPrice(d.price)}</p>
+        </div>
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;">
+          <p style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:0.07em;font-weight:600;margin-bottom:6px;">MA 20일</p>
+          <p style="font-size:15px;font-weight:700;color:#f1f5f9;">${d.ma20 ? fmtPrice(d.ma20) : '—'}</p>
+          ${ma20diff !== null ? `<p style="font-size:10px;color:${ma20diff >= 0 ? '#34d399' : '#f87171'};margin-top:3px;">${ma20diff >= 0 ? '+' : ''}${ma20diff}%</p>` : ''}
+        </div>
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;">
+          <p style="font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:0.07em;font-weight:600;margin-bottom:6px;">MA 60일</p>
+          <p style="font-size:15px;font-weight:700;color:#f1f5f9;">${d.ma60 ? fmtPrice(d.ma60) : '—'}</p>
+          ${ma60diff !== null ? `<p style="font-size:10px;color:${ma60diff >= 0 ? '#34d399' : '#f87171'};margin-top:3px;">${ma60diff >= 0 ? '+' : ''}${ma60diff}%</p>` : ''}
+        </div>
+      </div>
+
+      <!-- RSI gauge -->
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <p style="font-size:11px;color:#64748b;font-weight:600;">RSI (14일)</p>
+          <p style="font-size:18px;font-weight:800;color:${rsiColorVal};">${d.rsi !== null ? d.rsi : '—'}</p>
+        </div>
+        <div style="position:relative;height:8px;background:linear-gradient(90deg,#34d399 0%,#34d399 30%,#fbbf24 30%,#fbbf24 70%,#f87171 70%,#f87171 100%);border-radius:99px;opacity:0.4;">
+        </div>
+        <div style="position:relative;height:8px;margin-top:-8px;">
+          <div style="position:absolute;left:${rsiPct}%;transform:translateX(-50%);width:3px;height:14px;top:-3px;background:${rsiColorVal};border-radius:99px;box-shadow:0 0 6px ${rsiColorVal};"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+          <span style="font-size:9px;color:#34d399;font-weight:600;">과매도 &lt;30</span>
+          <span style="font-size:9px;color:#fbbf24;font-weight:600;">중립</span>
+          <span style="font-size:9px;color:#f87171;font-weight:600;">과매수 &gt;70</span>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div style="flex:1;min-height:180px;">
+        <canvas id="analysisChart"></canvas>
+      </div>
+    `;
+
+    if (analysisChart) { analysisChart.destroy(); analysisChart = null; }
+    const ctx = document.getElementById('analysisChart');
+    if (!ctx || !d.chart) return;
+
+    const c = d.chart;
+    analysisChart = new Chart(ctx.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: c.dates,
+        datasets: [
+          {
+            label: '종가',
+            data: c.closes,
+            borderColor: '#fbbf24',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: false,
+          },
+          {
+            label: 'MA20',
+            data: c.ma20,
+            borderColor: '#60a5fa',
+            borderWidth: 1,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: false,
+            borderDash: [],
+          },
+          {
+            label: 'MA60',
+            data: c.ma60,
+            borderColor: '#f87171',
+            borderWidth: 1,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            labels: { color: '#64748b', font: { size: 11 }, boxWidth: 12 },
+          },
+          tooltip: {
+            backgroundColor: 'rgba(6,13,27,0.95)',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            padding: 10,
+            titleColor: '#94a3b8',
+            bodyColor: '#f1f5f9',
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: ${ctx.raw ? ctx.raw.toLocaleString('ko-KR') + '원' : '—'}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#475569', font: { size: 9 }, maxTicksLimit: 6, maxRotation: 0 },
+            grid: { color: 'rgba(255,255,255,0.03)' },
+            border: { color: 'rgba(255,255,255,0.06)' },
+          },
+          y: {
+            ticks: {
+              color: '#475569', font: { size: 9 },
+              callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : v,
+            },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            border: { color: 'rgba(255,255,255,0.06)' },
+          },
+        },
+      },
+    });
+  }
+
+  function updateKPIs(data) {
+    const btc = data.find(c => c.market === 'KRW-BTC');
+    const eth = data.find(c => c.market === 'KRW-ETH');
+    const sorted = [...data].sort((a, b) => b.change_rate - a.change_rate);
+    const topGainer = sorted[0];
+    const topLoser = sorted[sorted.length - 1];
+
+    if (btc) {
+      document.getElementById('kpiBtcPrice').textContent = fmtPrice(btc.price);
+      document.getElementById('kpiBtcChange').innerHTML =
+        `<span style="color:${changeColor(btc.change_rate)};">${btc.change_rate >= 0 ? '+' : ''}${btc.change_rate}%</span>`;
+    }
+    if (eth) {
+      document.getElementById('kpiEthPrice').textContent = fmtPrice(eth.price);
+      document.getElementById('kpiEthChange').innerHTML =
+        `<span style="color:${changeColor(eth.change_rate)};">${eth.change_rate >= 0 ? '+' : ''}${eth.change_rate}%</span>`;
+    }
+    if (topGainer) {
+      document.getElementById('kpiTopGainerName').textContent = topGainer.name;
+      document.getElementById('kpiTopGainerRate').textContent = `+${topGainer.change_rate}%`;
+    }
+    if (topLoser) {
+      document.getElementById('kpiTopLoserName').textContent = topLoser.name;
+      document.getElementById('kpiTopLoserRate').textContent = `${topLoser.change_rate}%`;
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.opacity = '1';
+    t.style.transform = 'translateY(0)';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => {
+      t.style.opacity = '0';
+      t.style.transform = 'translateY(8px)';
+    }, 3000);
+  }
+
+  loadTickers();
+
+  // Stellar Web background
+  (function () {
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    function resize() {
+      canvas.width = innerWidth; canvas.height = innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const N = 80;
+    const nodes = Array.from({ length: N }, () => ({
+      x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+      r: 1 + Math.random() * 1.5,
+    }));
+
+    function tick() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#030508';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (const n of nodes) {
+        n.x += n.vx; n.y += n.vy;
+        if (n.x < 0 || n.x > canvas.width)  n.vx *= -1;
+        if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+      }
+
+      for (let i = 0; i < N; i++) {
+        for (let j = i + 1; j < N; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 150) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(251,191,36,${(1 - dist / 150) * 0.08})`;
+            ctx.lineWidth = 0.6;
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.stroke();
+          }
+        }
+        ctx.beginPath();
+        ctx.arc(nodes[i].x, nodes[i].y, nodes[i].r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(251,191,36,0.25)';
+        ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+  })();
+</script>
+</body>
+</html>

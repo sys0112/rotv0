@@ -1,0 +1,183 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e7]: ₿
+          - generic [ref=e8]:
+            - heading "코인 기술적 분석" [level=1] [ref=e9]
+            - paragraph [ref=e10]: 업비트 기준 실시간 데이터 · 오후 3:51:48
+        - navigation [ref=e11]:
+          - link "🎱 로또" [ref=e12] [cursor=pointer]:
+            - /url: /
+          - link "₿ 코인" [ref=e13] [cursor=pointer]:
+            - /url: /crypto
+      - button "🔄 새로고침" [ref=e59] [cursor=pointer]:
+        - generic [ref=e15]: 🔄
+        - generic [ref=e17]: 새로고침
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - paragraph [ref=e22]: 비트코인
+        - paragraph [ref=e23]: 91,195,000원
+        - paragraph [ref=e24]: +0.34%
+      - generic [ref=e25]:
+        - paragraph [ref=e27]: 이더리움
+        - paragraph [ref=e28]: 2,373,000원
+        - paragraph [ref=e29]: "-0.42%"
+      - generic [ref=e30]:
+        - paragraph [ref=e32]: 🏆 상승률 1위
+        - paragraph [ref=e33]: 솔라나
+        - paragraph [ref=e34]: +2.23%
+      - generic [ref=e35]:
+        - paragraph [ref=e37]: 📉 하락률 1위
+        - paragraph [ref=e38]: 도지코인
+        - paragraph [ref=e39]: "-1.75%"
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - heading "📊 코인 목록" [level=2] [ref=e43]
+          - generic [ref=e44]: 클릭하면 분석 차트 표시
+        - generic [ref=e45]:
+          - generic [ref=e46]: 코인
+          - generic [ref=e47]: 현재가
+          - generic [ref=e48]: 24h 변동
+          - generic [ref=e49]: RSI
+          - generic [ref=e50]: 거래대금(억)
+          - generic [ref=e51]: 시그널
+        - generic [ref=e52]:
+          - generic [ref=e60] [cursor=pointer]:
+            - generic [ref=e61]:
+              - generic [ref=e62]: BTC
+              - generic [ref=e63]:
+                - paragraph [ref=e64]: 비트코인
+                - paragraph [ref=e65]: BTC
+            - paragraph [ref=e67]: 91,195,000원
+            - paragraph [ref=e69]: +0.34%
+            - generic [ref=e70]: "37.7"
+            - generic [ref=e71]: 2,782
+            - generic [ref=e73]: HOLD
+          - generic [ref=e74] [cursor=pointer]:
+            - generic [ref=e75]:
+              - generic [ref=e76]: XRP
+              - generic [ref=e77]:
+                - paragraph [ref=e78]: 리플
+                - paragraph [ref=e79]: XRP
+            - paragraph [ref=e81]: 1,577원
+            - paragraph [ref=e83]: "-0.57%"
+            - generic [ref=e84]: "36.5"
+            - generic [ref=e85]: 2,329
+            - generic [ref=e87]: HOLD
+          - generic [ref=e88] [cursor=pointer]:
+            - generic [ref=e89]:
+              - generic [ref=e90]: ETH
+              - generic [ref=e91]:
+                - paragraph [ref=e92]: 이더리움
+                - paragraph [ref=e93]: ETH
+            - paragraph [ref=e95]: 2,373,000원
+            - paragraph [ref=e97]: "-0.42%"
+            - generic [ref=e98]: "39.7"
+            - generic [ref=e99]: 1,180
+            - generic [ref=e101]: HOLD
+          - generic [ref=e102] [cursor=pointer]:
+            - generic [ref=e103]:
+              - generic [ref=e104]: SOL
+              - generic [ref=e105]:
+                - paragraph [ref=e106]: 솔라나
+                - paragraph [ref=e107]: SOL
+            - paragraph [ref=e109]: 105,300원
+            - paragraph [ref=e111]: +2.23%
+            - generic [ref=e112]: "57.3"
+            - generic [ref=e113]: "373"
+            - generic [ref=e115]: SELL
+          - generic [ref=e116] [cursor=pointer]:
+            - generic [ref=e117]:
+              - generic [ref=e118]: DOG
+              - generic [ref=e119]:
+                - paragraph [ref=e120]: 도지코인
+                - paragraph [ref=e121]: DOGE
+            - paragraph [ref=e123]: 112원
+            - paragraph [ref=e125]: "-1.75%"
+            - generic [ref=e126]: "20"
+            - generic [ref=e127]: "277"
+            - generic [ref=e129]: BUY
+          - generic [ref=e130] [cursor=pointer]:
+            - generic [ref=e131]:
+              - generic [ref=e132]: ADA
+              - generic [ref=e133]:
+                - paragraph [ref=e134]: 에이다
+                - paragraph [ref=e135]: ADA
+            - paragraph [ref=e137]: 218원
+            - paragraph [ref=e139]: +0%
+            - generic [ref=e140]: "27.4"
+            - generic [ref=e141]: "93"
+            - generic [ref=e143]: BUY
+          - generic [ref=e144] [cursor=pointer]:
+            - generic [ref=e145]:
+              - generic [ref=e146]: LIN
+              - generic [ref=e147]:
+                - paragraph [ref=e148]: 체인링크
+                - paragraph [ref=e149]: LINK
+            - paragraph [ref=e151]: 10,990원
+            - paragraph [ref=e153]: "-0.36%"
+            - generic [ref=e154]: "32.5"
+            - generic [ref=e155]: "54"
+            - generic [ref=e157]: BUY
+          - generic [ref=e158] [cursor=pointer]:
+            - generic [ref=e159]:
+              - generic [ref=e160]: AVA
+              - generic [ref=e161]:
+                - paragraph [ref=e162]: 아발란체
+                - paragraph [ref=e163]: AVAX
+            - paragraph [ref=e165]: 9,415원
+            - paragraph [ref=e167]: "-0.58%"
+            - generic [ref=e168]: "42.9"
+            - generic [ref=e169]: "40"
+            - generic [ref=e171]: HOLD
+          - generic [ref=e172] [cursor=pointer]:
+            - generic [ref=e173]:
+              - generic [ref=e174]: DOT
+              - generic [ref=e175]:
+                - paragraph [ref=e176]: 폴카닷
+                - paragraph [ref=e177]: DOT
+            - paragraph [ref=e179]: 1,266원
+            - paragraph [ref=e181]: "-1.09%"
+            - generic [ref=e182]: "26"
+            - generic [ref=e183]: "14"
+            - generic [ref=e185]: BUY
+          - generic [ref=e186] [cursor=pointer]:
+            - generic [ref=e187]:
+              - generic [ref=e188]: POL
+              - generic [ref=e189]:
+                - paragraph [ref=e190]: 폴리곤
+                - paragraph [ref=e191]: POL
+            - paragraph [ref=e193]: 111원
+            - paragraph [ref=e195]: +0.91%
+            - generic [ref=e196]: "48"
+            - generic [ref=e197]: "14"
+            - generic [ref=e199]: SELL
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - heading "📈 비트코인 기술적 분석" [level=2] [ref=e200]
+          - generic [ref=e202]: HOLD
+        - generic [ref=e57]:
+          - generic [ref=e203]:
+            - generic [ref=e204]:
+              - paragraph [ref=e205]: 현재가
+              - paragraph [ref=e206]: 91,195,000원
+            - generic [ref=e207]:
+              - paragraph [ref=e208]: MA 20일
+              - paragraph [ref=e209]: 95,432,950원
+              - paragraph [ref=e210]: "-4.4%"
+            - generic [ref=e211]:
+              - paragraph [ref=e212]: MA 60일
+              - paragraph [ref=e213]: 106,867,033원
+              - paragraph [ref=e214]: "-14.7%"
+          - generic [ref=e215]:
+            - generic [ref=e216]:
+              - paragraph [ref=e217]: RSI (14일)
+              - paragraph [ref=e218]: "37.7"
+            - generic [ref=e222]:
+              - generic [ref=e223]: 과매도 <30
+              - generic [ref=e224]: 중립
+              - generic [ref=e225]: 과매수 >70

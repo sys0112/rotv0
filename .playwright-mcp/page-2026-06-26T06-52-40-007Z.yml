@@ -1,0 +1,126 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e7]: 🎱
+          - generic [ref=e8]:
+            - heading "로또 번호 분석기" [level=1] [ref=e9]
+            - paragraph [ref=e10]: 1회 ~ 1229회차 수집 (총 1229회)
+        - navigation [ref=e11]:
+          - link "🎱 로또" [ref=e12] [cursor=pointer]:
+            - /url: /
+          - link "₿ 코인" [ref=e13] [cursor=pointer]:
+            - /url: /crypto
+      - button "🔄 최신 데이터 받기" [ref=e14] [cursor=pointer]:
+        - generic [ref=e15]: 🔄
+        - generic [ref=e16]: 최신 데이터 받기
+  - main [ref=e17]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - paragraph [ref=e21]: 수집된 회차
+        - paragraph [ref=e22]: 1229회
+      - generic [ref=e23]:
+        - paragraph [ref=e25]: 최신 회차
+        - paragraph [ref=e26]: 1229회
+      - generic [ref=e27]:
+        - paragraph [ref=e29]: 🔥 최다 출현
+        - generic [ref=e30]:
+          - generic [ref=e31]: "34"
+          - generic [ref=e32]:
+            - paragraph [ref=e33]: 34번
+            - paragraph [ref=e34]: 184회 출현
+      - generic [ref=e35]:
+        - paragraph [ref=e37]: ❄️ 최소 출현
+        - generic [ref=e38]:
+          - generic [ref=e39]: "09"
+          - generic [ref=e40]:
+            - paragraph [ref=e41]: 9번
+            - paragraph [ref=e42]: 135회 출현
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - heading "✨ 번호 추천" [level=2] [ref=e46]
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - button "🔥 핫" [ref=e49] [cursor=pointer]
+              - button "❄️ 콜드" [ref=e50] [cursor=pointer]
+              - button "✨ 혼합" [ref=e51] [cursor=pointer]
+            - combobox [ref=e52] [cursor=pointer]:
+              - option "3세트"
+              - option "5세트" [selected]
+              - option "7세트"
+              - option "10세트"
+            - button "추천받기 →" [ref=e53] [cursor=pointer]
+        - paragraph [ref=e55]: 위 버튼을 눌러 번호를 추천받아보세요.
+      - generic [ref=e56]:
+        - heading "🏆 출현 빈도 TOP 10" [level=2] [ref=e58]
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - generic [ref=e61]: 🥇
+            - generic [ref=e62]: "34"
+            - generic [ref=e64]:
+              - generic [ref=e65]: 34번
+              - generic [ref=e66]: 184회
+          - generic [ref=e69]:
+            - generic [ref=e70]: 🥈
+            - generic [ref=e71]: "27"
+            - generic [ref=e73]:
+              - generic [ref=e74]: 27번
+              - generic [ref=e75]: 181회
+          - generic [ref=e78]:
+            - generic [ref=e79]: 🥉
+            - generic [ref=e80]: "12"
+            - generic [ref=e82]:
+              - generic [ref=e83]: 12번
+              - generic [ref=e84]: 178회
+          - generic [ref=e87]:
+            - generic [ref=e88]: "4"
+            - generic [ref=e89]: "13"
+            - generic [ref=e91]:
+              - generic [ref=e92]: 13번
+              - generic [ref=e93]: 178회
+          - generic [ref=e96]:
+            - generic [ref=e97]: "5"
+            - generic [ref=e98]: "18"
+            - generic [ref=e100]:
+              - generic [ref=e101]: 18번
+              - generic [ref=e102]: 175회
+          - generic [ref=e105]:
+            - generic [ref=e106]: "6"
+            - generic [ref=e107]: "45"
+            - generic [ref=e109]:
+              - generic [ref=e110]: 45번
+              - generic [ref=e111]: 175회
+          - generic [ref=e114]:
+            - generic [ref=e115]: "7"
+            - generic [ref=e116]: "33"
+            - generic [ref=e118]:
+              - generic [ref=e119]: 33번
+              - generic [ref=e120]: 174회
+          - generic [ref=e123]:
+            - generic [ref=e124]: "8"
+            - generic [ref=e125]: "37"
+            - generic [ref=e127]:
+              - generic [ref=e128]: 37번
+              - generic [ref=e129]: 172회
+          - generic [ref=e132]:
+            - generic [ref=e133]: "9"
+            - generic [ref=e134]: "40"
+            - generic [ref=e136]:
+              - generic [ref=e137]: 40번
+              - generic [ref=e138]: 172회
+          - generic [ref=e141]:
+            - generic [ref=e142]: "10"
+            - generic [ref=e143]: "03"
+            - generic [ref=e145]:
+              - generic [ref=e146]: 3번
+              - generic [ref=e147]: 171회
+    - generic [ref=e151]:
+      - heading "📊 번호별 출현 빈도" [level=2] [ref=e152]
+      - generic [ref=e153]:
+        - generic [ref=e154]: 1–10
+        - generic [ref=e156]: 11–20
+        - generic [ref=e158]: 21–30
+        - generic [ref=e160]: 31–40
+        - generic [ref=e162]: 41–45

@@ -1,4 +1,3 @@
-import random
 from collections import Counter
 
 
@@ -35,29 +34,40 @@ def pick_numbers(draws: list, strategy: str = "mixed", count: int = 5) -> list:
     recent = draws[-50:] if len(draws) >= 50 else draws
     recent_counter = Counter(n for d in recent for n in d["numbers"])
 
-    hot_pool = [
+    hot_ranked = [
         s["number"]
-        for s in sorted(stats, key=lambda x: recent_counter.get(x["number"], 0), reverse=True)[:20]
+        for s in sorted(stats, key=lambda x: recent_counter.get(x["number"], 0), reverse=True)
     ]
-    cold_pool = [
+    cold_ranked = [
         s["number"]
-        for s in sorted(stats, key=lambda x: x["last_seen_ago"], reverse=True)[:20]
+        for s in sorted(stats, key=lambda x: x["last_seen_ago"], reverse=True)
     ]
 
     results = []
-    for _ in range(count):
-        if strategy == "hot":
-            nums = sorted(random.sample(hot_pool, 6))
-        elif strategy == "cold":
-            nums = sorted(random.sample(cold_pool, 6))
-        else:
-            hot3 = random.sample(hot_pool, 3)
-            cold_remaining = [n for n in cold_pool if n not in hot3]
-            if len(cold_remaining) < 3:
-                all_remaining = [n for n in range(1, 46) if n not in hot3]
-                cold_remaining = all_remaining
-            cold3 = random.sample(cold_remaining, 3)
-            nums = sorted(hot3 + cold3)
-        results.append(nums)
+    if strategy == "hot":
+        for i in range(count):
+            start = (i * 6) % len(hot_ranked)
+            nums = [hot_ranked[(start + k) % len(hot_ranked)] for k in range(6)]
+            results.append(sorted(nums))
+    elif strategy == "cold":
+        for i in range(count):
+            start = (i * 6) % len(cold_ranked)
+            nums = [cold_ranked[(start + k) % len(cold_ranked)] for k in range(6)]
+            results.append(sorted(nums))
+    else:
+        # Fixed pools: top 22 hot, remaining 23 cold.
+        # Circular indexing ensures all counts (1–10) yield 6 numbers per set.
+        hot_pool = hot_ranked[:22]
+        cold_pool = [n for n in cold_ranked if n not in set(hot_pool)]
+        for i in range(count):
+            h = i * 3 % len(hot_pool)
+            c = i * 3 % len(cold_pool)
+            hot3 = [hot_pool[(h + k) % len(hot_pool)] for k in range(3)]
+            cold3 = [cold_pool[(c + k) % len(cold_pool)] for k in range(3)]
+            nums = sorted(set(hot3) | set(cold3))
+            if len(nums) < 6:
+                fill = [n for n in hot_ranked if n not in set(nums)]
+                nums = sorted(nums + fill[:6 - len(nums)])
+            results.append(nums)
 
     return results

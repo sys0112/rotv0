@@ -11,13 +11,13 @@ SMALL_DRAWS = [
 
 @pytest.fixture
 def large_draws():
-    random.seed(42)
+    rng = random.Random(42)
     return [
         {
             "round": i + 1,
             "date": "2000-01-01",
-            "numbers": sorted(random.sample(range(1, 46), 6)),
-            "bonus": random.randint(1, 45),
+            "numbers": sorted(rng.sample(range(1, 46), 6)),
+            "bonus": rng.randint(1, 45),
         }
         for i in range(60)
     ]
@@ -65,28 +65,35 @@ def test_pick_numbers_returns_requested_count(large_draws):
 
 
 def test_pick_numbers_each_set_has_6_unique(large_draws):
-    results = pick_numbers(large_draws, strategy="mixed", count=5)
-    for nums in results:
-        assert len(nums) == 6
-        assert len(set(nums)) == 6
-        assert all(1 <= n <= 45 for n in nums)
-        assert nums == sorted(nums)
+    for count in [3, 5, 7, 10]:
+        results = pick_numbers(large_draws, strategy="mixed", count=count)
+        assert len(results) == count, f"count={count}: expected {count} sets"
+        for nums in results:
+            assert len(nums) == 6, f"count={count}: set has {len(nums)} numbers"
+            assert len(set(nums)) == 6
+            assert all(1 <= n <= 45 for n in nums)
+            assert nums == sorted(nums)
 
 
 def test_pick_numbers_all_strategies(large_draws):
     for strategy in ["hot", "cold", "mixed"]:
-        results = pick_numbers(large_draws, strategy=strategy, count=2)
-        assert len(results) == 2
-        for nums in results:
-            assert len(nums) == 6
+        for count in [2, 5, 10]:
+            results = pick_numbers(large_draws, strategy=strategy, count=count)
+            assert len(results) == count
+            for nums in results:
+                assert len(nums) == 6
+                assert len(set(nums)) == 6
+
+
+def test_pick_numbers_is_deterministic(large_draws):
+    result1 = pick_numbers(large_draws, strategy="mixed", count=5)
+    result2 = pick_numbers(large_draws, strategy="mixed", count=5)
+    assert result1 == result2
 
 
 def test_hot_and_cold_strategies_differ(large_draws):
-    random.seed(0)
-    hot_results = [n for nums in pick_numbers(large_draws, strategy="hot", count=10) for n in nums]
-    random.seed(0)
-    cold_results = [n for nums in pick_numbers(large_draws, strategy="cold", count=10) for n in nums]
-    # Hot and cold strategies should draw from different pools — their outputs should not be identical
+    hot_results = [n for nums in pick_numbers(large_draws, strategy="hot", count=3) for n in nums]
+    cold_results = [n for nums in pick_numbers(large_draws, strategy="cold", count=3) for n in nums]
     assert set(hot_results) != set(cold_results)
 
 

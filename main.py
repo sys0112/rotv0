@@ -16,10 +16,11 @@ def cmd_update(args):
     total = latest_remote - latest_local
     print(f"크롤링 시작: {latest_local + 1}회차 ~ {latest_remote}회차 (총 {total}개)")
 
+    session = crawler.build_session()
     saved = 0
     failed = 0
     for round_no in range(latest_local + 1, latest_remote + 1):
-        draw = crawler.fetch_draw(round_no)
+        draw = crawler.fetch_draw(round_no, _session=session)
         if draw:
             db.save_draw(draw["round"], draw["date"], draw["numbers"], draw["bonus"])
             saved += 1
