@@ -373,3 +373,40 @@ def traverse(node: dict) -> str:
             print("  y 또는 n으로 답해주세요.")
         node = node[answer]
     return node["answer"]
+
+
+def run_game() -> None:
+    print("\n" + "=" * 40)
+    print("   페르소나 추리 게임")
+    print("=" * 40)
+    print("무언가(동물, 인물, 사물 등)를 생각하세요.")
+
+    while True:
+        input("  준비되면 엔터를 누르세요...")
+        answer = traverse(TREE)
+
+        print(f"\n  혹시... [ {answer} ] 아닌가요?")
+        while True:
+            raw = input("  (y/n) > ")
+            yn = normalize_input(raw)
+            if yn:
+                break
+            print("  y 또는 n으로 답해주세요.")
+
+        if yn == "yes":
+            print("\n  맞췄습니다! 대단하죠? :)")
+        else:
+            what = input("\n  아쉽네요! 뭘 생각하셨나요? > ")
+            print(f"  '{what}'이군요! 다음엔 꼭 맞히겠습니다.")
+
+        print()
+        while True:
+            raw = input("  다시 하시겠어요? (y/n) > ")
+            yn = normalize_input(raw)
+            if yn:
+                break
+            print("  y 또는 n으로 답해주세요.")
+
+        if yn == "no":
+            print("  메인 메뉴로 돌아갑니다.\n")
+            break
