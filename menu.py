@@ -1,6 +1,13 @@
 import os
 import sys
 
+# Windows 터미널 UTF-8 출력 설정
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdin.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 # exe로 실행될 때 lotto.db를 exe 옆에서 찾도록 경로 설정 (import 전에 해야 함)
 if getattr(sys, "frozen", False):
     _exe_dir = os.path.dirname(sys.executable)
@@ -62,4 +69,6 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print("\n종료합니다.")
+        sys.exit(0)
+    except EOFError:
         sys.exit(0)
