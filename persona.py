@@ -96,7 +96,7 @@ TREE = {
                             "yes": {
                                 "question": "대나무를 먹나요?",
                                 "yes": {"answer": "판다"},
-                                "no": {"answer": "얼룩말"},
+                                "no": {"answer": "스컹크"},
                             },
                             "no": {
                                 "question": "나무 위에서 주로 생활하나요?",
