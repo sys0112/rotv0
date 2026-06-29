@@ -1,5 +1,12 @@
-import argparse
+import os
 import sys
+
+# exe로 실행될 때 lotto.db를 exe 옆에서 찾도록 경로 설정 (import 전에 해야 함)
+if getattr(sys, "frozen", False):
+    _exe_dir = os.path.dirname(sys.executable)
+    os.environ.setdefault("ROTTO_DB_PATH", os.path.join(_exe_dir, "lotto.db"))
+
+import argparse
 from persona import run_game
 from main import cmd_update, cmd_stats, cmd_pick
 
