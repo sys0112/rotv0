@@ -180,6 +180,10 @@
             <p id="headerSub" style="font-size:11px;color:#64748b;margin-top:2px;">{{ first_round }}회 ~ {{ latest_round }}회차 수집 (총 {{ total }}회)</p>
           </div>
         </div>
+        <nav style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:4px;">
+          <a href="/" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;font-size:13px;font-weight:600;background:rgba(16,185,129,0.18);color:#34d399;border:1px solid rgba(16,185,129,0.25);text-decoration:none;">🎱 로또</a>
+          <a href="/pension" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;font-size:13px;font-weight:500;color:#64748b;text-decoration:none;transition:color 0.15s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">🎰 연금복권</a>
+        </nav>
       </div>
       <button id="updateBtn" onclick="doUpdate()" class="btn-primary">
         <span id="updateIcon">🔄</span>

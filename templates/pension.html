@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>연금복권 번호 분석기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+      background-color: #020508;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(59,130,246,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(37,99,235,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(96,165,250,0.03) 0%, transparent 70%);
+      min-height: 100vh;
+      color: #e2e8f0;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #app { position: relative; z-index: 1; }
+    .card {
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 16px;
+    }
+    .card-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .card-title { font-size: 13px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+    .btn-primary {
+      display: flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(37,99,235,0.1));
+      border: 1px solid rgba(59,130,246,0.3);
+      color: #93c5fd; padding: 10px 20px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(37,99,235,0.2)); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    #bgCanvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .kpi-card { transition: transform 0.15s; }
+    .kpi-card:hover { transform: translateY(-1px); }
+    .pos-tab {
+      padding: 5px 10px; border-radius: 7px; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; color: #64748b;
+      background: transparent; border: 1px solid transparent;
+    }
+    .pos-tab.active { background: rgba(59,130,246,0.18); color: #93c5fd; border-color: rgba(59,130,246,0.25); }
+    .strategy-btn {
+      padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; color: #64748b;
+      background: transparent; border: 1px solid rgba(255,255,255,0.08);
+    }
+    .strategy-btn.active { background: rgba(59,130,246,0.18); color: #93c5fd; border-color: rgba(59,130,246,0.3); }
+    .jo-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3);
+      color: #93c5fd; font-size: 12px; font-weight: 700;
+      padding: 4px 10px; border-radius: 8px; min-width: 44px;
+    }
+    .digit-box {
+      width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; font-size: 15px; font-weight: 700; color: #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<div id="app">
+
+  <header style="background:rgba(2,5,8,0.88);border-bottom:1px solid rgba(255,255,255,0.07);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:sticky;top:0;z-index:50;">
+    <div style="max-width:1280px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div style="display:flex;align-items:center;gap:20px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,rgba(59,130,246,0.25),rgba(37,99,235,0.1));border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🎰</div>
+          <div>
+            <h1 style="font-size:16px;font-weight:700;color:#f1f5f9;letter-spacing:-0.01em;line-height:1.2;">연금복권 번호 분석기</h1>
+            <p id="headerSub" style="font-size:11px;color:#64748b;margin-top:2px;">{% if total %}{{ first_round }}회 ~ {{ latest_round }}회차 수집 (총 {{ total }}회){% else %}데이터를 업데이트하세요{% endif %}</p>
+          </div>
+        </div>
+        <nav style="display:flex;gap:4px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:4px;">
+          <a href="/" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;font-size:13px;font-weight:500;color:#64748b;text-decoration:none;transition:color 0.15s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">🎱 로또</a>
+          <a href="/pension" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;font-size:13px;font-weight:600;background:rgba(59,130,246,0.18);color:#93c5fd;border:1px solid rgba(59,130,246,0.25);text-decoration:none;">🎰 연금복권</a>
+        </nav>
+      </div>
+      <button id="updateBtn" onclick="doUpdate()" class="btn-primary">
+        <span id="updateIcon">🔄</span>
+        <span id="updateText">최신 데이터 받기</span>
+      </button>
+    </div>
+  </header>
+
+  <main style="max-width:1280px;margin:0 auto;padding:28px 32px;display:flex;flex-direction:column;gap:20px;">
+
+    <!-- KPI row -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:500px;">
+      <div class="card kpi-card" style="padding:20px 22px;overflow:hidden;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:16px 16px 0 0;"></div>
+        <p style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;">수집된 회차</p>
+        <p id="kpiTotal" style="font-size:28px;font-weight:800;color:#f1f5f9;line-height:1;">{{ total or '-' }}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px;">회</span></p>
+      </div>
+      <div class="card kpi-card" style="padding:20px 22px;overflow:hidden;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:16px 16px 0 0;"></div>
+        <p style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:10px;">최신 회차</p>
+        <p id="kpiLatest" style="font-size:28px;font-weight:800;color:#f1f5f9;line-height:1;">{{ latest_round or '-' }}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px;">회</span></p>
+      </div>
+    </div>
+
+    <!-- Main grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+      <!-- Left: Digit frequency -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">자릿수별 빈도</span>
+          <div style="display:flex;gap:3px;">
+            <button class="pos-tab active" onclick="selectPos(0)" id="posTab0">1번째</button>
+            <button class="pos-tab" onclick="selectPos(1)" id="posTab1">2번째</button>
+            <button class="pos-tab" onclick="selectPos(2)" id="posTab2">3번째</button>
+            <button class="pos-tab" onclick="selectPos(3)" id="posTab3">4번째</button>
+            <button class="pos-tab" onclick="selectPos(4)" id="posTab4">5번째</button>
+            <button class="pos-tab" onclick="selectPos(5)" id="posTab5">6번째</button>
+          </div>
+        </div>
+        <div style="padding:20px;">
+          <canvas id="freqChart" height="220"></canvas>
+          <p id="noDataMsg" style="text-align:center;color:#64748b;font-size:13px;padding:40px 0;">데이터를 업데이트하세요</p>
+        </div>
+      </div>
+
+      <!-- Right: Recommendations -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">번호 추천</span>
+          <div style="display:flex;gap:6px;">
+            <button class="strategy-btn active" id="stratMixed" onclick="setStrategy('mixed')">Mixed</button>
+            <button class="strategy-btn" id="stratHot" onclick="setStrategy('hot')">🔥 Hot</button>
+            <button class="strategy-btn" id="stratCold" onclick="setStrategy('cold')">❄️ Cold</button>
+          </div>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:12px;">
+          <div id="setsContainer" style="display:flex;flex-direction:column;gap:8px;min-height:220px;">
+            <p style="color:#64748b;font-size:13px;text-align:center;margin-top:40px;">번호 추천받기 버튼을 눌러주세요</p>
+          </div>
+          <button onclick="doPick()" class="btn-primary" style="width:100%;justify-content:center;margin-top:4px;">
+            🎰 번호 추천받기
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+// ── Stellar Web background (blue) ──
+(function() {
+  const canvas = document.getElementById('bgCanvas');
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  const N = 80;
+  const nodes = Array.from({ length: N }, () => ({
+    x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+    vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+    r: 1 + Math.random() * 1.5,
+  }));
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < N; i++) {
+      const a = nodes[i];
+      a.x += a.vx; a.y += a.vy;
+      if (a.x < 0 || a.x > canvas.width) a.vx *= -1;
+      if (a.y < 0 || a.y > canvas.height) a.vy *= -1;
+      for (let j = i + 1; j < N; j++) {
+        const b = nodes[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 150) {
+          ctx.strokeStyle = `rgba(59,130,246,${(1 - dist/150) * 0.15})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        }
+      }
+      ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(59,130,246,0.25)'; ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── State ──
+let currentStrategy = 'mixed';
+let currentPos = 0;
+let statsData = null;
+let freqChart = null;
+
+// ── Update ──
+async function doUpdate() {
+  const btn = document.getElementById('updateBtn');
+  const icon = document.getElementById('updateIcon');
+  const text = document.getElementById('updateText');
+  btn.disabled = true; icon.textContent = '⏳'; text.textContent = '업데이트 중...';
+  try {
+    const r = await fetch('/api/pension/update', { method: 'POST' });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    document.getElementById('kpiTotal').innerHTML = `${d.total}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px;">회</span>`;
+    document.getElementById('kpiLatest').innerHTML = `${d.latest}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px;">회</span>`;
+    document.getElementById('headerSub').textContent = `1회 ~ ${d.latest}회차 수집 (총 ${d.total}회)`;
+    icon.textContent = '✅'; text.textContent = `${d.saved}건 저장됨`;
+    await loadStats();
+  } catch(e) {
+    icon.textContent = '❌'; text.textContent = '오류: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { icon.textContent = '🔄'; text.textContent = '최신 데이터 받기'; }, 3000);
+  }
+}
+
+// ── Stats & Chart ──
+async function loadStats() {
+  const r = await fetch('/api/pension/stats');
+  statsData = await r.json();
+  if (statsData.positions && statsData.positions.length > 0) {
+    document.getElementById('noDataMsg').style.display = 'none';
+    renderChart(currentPos);
+  }
+}
+
+function selectPos(idx) {
+  currentPos = idx;
+  for (let i = 0; i < 6; i++) {
+    document.getElementById(`posTab${i}`).classList.toggle('active', i === idx);
+  }
+  if (statsData && statsData.positions) renderChart(idx);
+}
+
+function renderChart(posIdx) {
+  if (!statsData || !statsData.positions || statsData.positions.length === 0) return;
+  const posData = statsData.positions[posIdx];
+  const labels = posData.map(s => s.digit.toString());
+  const data = posData.map(s => s.count);
+  const ctx = document.getElementById('freqChart').getContext('2d');
+  if (freqChart) freqChart.destroy();
+  freqChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: `${posIdx+1}번째 자리 빈도`,
+        data,
+        backgroundColor: 'rgba(59,130,246,0.45)',
+        borderColor: 'rgba(59,130,246,0.8)',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { weight: '600' } } },
+      }
+    }
+  });
+}
+
+// ── Strategy ──
+function setStrategy(s) {
+  currentStrategy = s;
+  document.getElementById('stratMixed').classList.toggle('active', s === 'mixed');
+  document.getElementById('stratHot').classList.toggle('active', s === 'hot');
+  document.getElementById('stratCold').classList.toggle('active', s === 'cold');
+}
+
+// ── Pick ──
+async function doPick() {
+  const r = await fetch(`/api/pension/pick?strategy=${currentStrategy}&count=5`);
+  const d = await r.json();
+  if (d.error) { alert(d.error); return; }
+  renderSets(d.sets);
+}
+
+function renderSets(sets) {
+  document.getElementById('setsContainer').innerHTML = sets.map((s, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;">
+      <span style="font-size:11px;color:#64748b;font-weight:600;min-width:16px;">${i+1}</span>
+      <span class="jo-badge">${s.jo}조</span>
+      <div style="display:flex;gap:5px;">
+        ${s.number.split('').map(d => `<span class="digit-box">${d}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Init: load existing stats if data already in DB ──
+window.addEventListener('load', () => { loadStats(); });
+</script>
+</body>
+</html>
