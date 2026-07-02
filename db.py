@@ -54,3 +54,43 @@ def get_all_draws() -> list:
         }
         for r in rows
     ]
+
+
+def init_pension_db():
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS pension_draws (
+                round   INTEGER PRIMARY KEY,
+                date    TEXT NOT NULL,
+                jo      INTEGER NOT NULL,
+                number  TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+
+
+def save_pension_draw(round_no: int, date: str, jo: int, number: str):
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO pension_draws VALUES (?,?,?,?)",
+            (round_no, date, jo, number),
+        )
+        conn.commit()
+
+
+def get_latest_pension_round() -> int:
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        row = conn.execute("SELECT MAX(round) FROM pension_draws").fetchone()
+    return row[0] or 0
+
+
+def get_all_pension_draws() -> list:
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT * FROM pension_draws ORDER BY round"
+        ).fetchall()
+    return [
+        {"round": r["round"], "date": r["date"], "jo": r["jo"], "number": r["number"]}
+        for r in rows
+    ]
