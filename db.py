@@ -176,7 +176,7 @@ def get_or_create_flask_secret() -> str:
             return row[0]
         secret = _secrets.token_hex(32)
         conn.execute(
-            "INSERT INTO admin_config VALUES ('flask_secret', ?)", (secret,)
+            "INSERT OR IGNORE INTO admin_config VALUES ('flask_secret', ?)", (secret,)
         )
         conn.commit()
         return secret

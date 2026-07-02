@@ -2,7 +2,6 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
-import os
 from flask import Flask, render_template, jsonify, request, redirect, session
 from werkzeug.security import check_password_hash, generate_password_hash
 import db
@@ -62,7 +61,8 @@ def admin_login():
         password = request.form.get("password", "")
         stored_hash = db.get_admin_password_hash()
         if stored_hash is None:
-            # First-time setup: set the password
+            if not password:
+                return render_template("admin_login.html", error="비밀번호를 입력해주세요", first_time=True)
             db.set_admin_password_hash(generate_password_hash(password))
             session["admin"] = True
             return redirect("/admin")
@@ -137,12 +137,12 @@ def api_update():
         first = draws[0]["round"] if draws else 0
         return jsonify({"saved": 0, "latest": latest_local, "total": len(draws), "first_round": first})
 
-    session = crawler.build_session()
+    http_session = crawler.build_session()
     saved = 0
     failed = 0
     for round_no in range(latest_local + 1, latest_remote + 1):
         try:
-            draw = crawler.fetch_draw(round_no, _session=session)
+            draw = crawler.fetch_draw(round_no, _session=http_session)
             if draw:
                 db.save_draw(draw["round"], draw["date"], draw["numbers"], draw["bonus"])
                 saved += 1
