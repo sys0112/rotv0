@@ -224,7 +224,7 @@ async function doUpdate() {
     if (d.error) throw new Error(d.error);
     document.getElementById('kpiTotal').innerHTML = `${d.total}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px;">회</span>`;
     document.getElementById('kpiLatest').innerHTML = `${d.latest}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px;">회</span>`;
-    document.getElementById('headerSub').textContent = `1회 ~ ${d.latest}회차 수집 (총 ${d.total}회)`;
+    document.getElementById('headerSub').textContent = `${d.first_round || 1}회 ~ ${d.latest}회차 수집 (총 ${d.total}회)`;
     icon.textContent = '✅'; text.textContent = `${d.saved}건 저장됨`;
     await loadStats();
   } catch(e) {
@@ -237,12 +237,15 @@ async function doUpdate() {
 
 // ── Stats & Chart ──
 async function loadStats() {
-  const r = await fetch('/api/pension/stats');
-  statsData = await r.json();
-  if (statsData.positions && statsData.positions.length > 0) {
-    document.getElementById('noDataMsg').style.display = 'none';
-    renderChart(currentPos);
-  }
+  try {
+    const r = await fetch('/api/pension/stats');
+    if (!r.ok) return;
+    statsData = await r.json();
+    if (statsData.positions && statsData.positions.length > 0) {
+      document.getElementById('noDataMsg').style.display = 'none';
+      renderChart(currentPos);
+    }
+  } catch(e) {}
 }
 
 function selectPos(idx) {
@@ -295,10 +298,19 @@ function setStrategy(s) {
 
 // ── Pick ──
 async function doPick() {
-  const r = await fetch(`/api/pension/pick?strategy=${currentStrategy}&count=5`);
-  const d = await r.json();
-  if (d.error) { alert(d.error); return; }
-  renderSets(d.sets);
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  try {
+    const r = await fetch(`/api/pension/pick?strategy=${currentStrategy}&count=5`);
+    if (!r.ok) { alert('서버 오류가 발생했습니다'); return; }
+    const d = await r.json();
+    if (d.error) { alert(d.error); return; }
+    renderSets(d.sets);
+  } catch(e) {
+    alert('네트워크 오류: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function renderSets(sets) {
