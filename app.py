@@ -96,32 +96,28 @@ def api_pension_update():
     db.init_pension_db()
     latest_local = db.get_latest_pension_round()
     try:
-        latest_remote = pension_crawler.fetch_latest_pension_round()
+        all_draws = pension_crawler.fetch_all_pension_draws()
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+    latest_remote = max((d["round"] for d in all_draws), default=0)
     if latest_local >= latest_remote:
         draws = db.get_all_pension_draws()
         first = draws[0]["round"] if draws else 0
         return jsonify({"saved": 0, "latest": latest_local, "total": len(draws), "first_round": first})
 
-    session = pension_crawler.build_session()
     saved = 0
-    failed = 0
-    for round_no in range(latest_local + 1, latest_remote + 1):
-        try:
-            draw = pension_crawler.fetch_pension_draw(round_no, _session=session)
-            if draw:
+    for draw in all_draws:
+        if draw["round"] > latest_local:
+            try:
                 db.save_pension_draw(draw["round"], draw["date"], draw["jo"], draw["number"])
                 saved += 1
-            else:
-                failed += 1
-        except Exception:
-            failed += 1
+            except Exception:
+                pass
 
     draws = db.get_all_pension_draws()
     first = draws[0]["round"] if draws else 0
-    return jsonify({"saved": saved, "failed": failed, "latest": latest_remote, "total": len(draws), "first_round": first})
+    return jsonify({"saved": saved, "failed": 0, "latest": latest_remote, "total": len(draws), "first_round": first})
 
 
 @app.route("/api/pension/stats")

@@ -1,55 +1,67 @@
 import pytest
-from pension_crawler import _parse_pension_draw
+from unittest.mock import patch, Mock
+from pension_crawler import fetch_all_pension_draws, fetch_latest_pension_round, fetch_pension_draw
+
+MOCK_API_RESPONSE = {
+    "resultCode": None,
+    "resultMessage": None,
+    "data": {
+        "result": [
+            {"psltEpsd": 321, "psltRflYmd": "20260625", "wnBndNo": "5", "wnRnkVl": "686709", "bnsRnkVl": "326599"},
+            {"psltEpsd": 320, "psltRflYmd": "20260618", "wnBndNo": "5", "wnRnkVl": "766487", "bnsRnkVl": "897760"},
+            {"psltEpsd": 100, "psltRflYmd": "20240302", "wnBndNo": "2", "wnRnkVl": "091834", "bnsRnkVl": "123456"},
+        ]
+    }
+}
 
 
-FIXTURE_BASIC = """
-<html><body>
-<select id="Round" name="Round">
-  <option value="195" selected>제195회(2026.06.28)</option>
-  <option value="194">제194회(2026.06.21)</option>
-</select>
-<div class="result_area">
-  <p>1등 당첨번호</p>
-  <strong>3조 415207번</strong>
-</div>
-</body></html>
-"""
-
-FIXTURE_YEAR_FORMAT = """
-<html><body>
-<select name="Round">
-  <option value="100">제100회(2024.03.02)</option>
-</select>
-<div>2024년 3월 2일 추첨</div>
-<p>1등: 2조 091834번</p>
-</body></html>
-"""
-
-FIXTURE_NO_DATA = "<html><body><p>결과 없음</p></body></html>"
+def make_mock_response(data):
+    m = Mock()
+    m.json.return_value = data
+    m.raise_for_status.return_value = None
+    return m
 
 
-def test_parse_basic():
-    result = _parse_pension_draw(195, FIXTURE_BASIC)
-    assert result is not None
-    assert result["round"] == 195
-    assert result["jo"] == 3
-    assert result["number"] == "415207"
-    assert result["date"] == "2026-06-28"
+def test_fetch_all_returns_list():
+    with patch("pension_crawler.requests.get", return_value=make_mock_response(MOCK_API_RESPONSE)):
+        draws = fetch_all_pension_draws()
+    assert isinstance(draws, list)
+    assert len(draws) == 3
 
 
-def test_parse_year_format_fallback():
-    result = _parse_pension_draw(100, FIXTURE_YEAR_FORMAT)
-    assert result is not None
-    assert result["jo"] == 2
-    assert result["number"] == "091834"
-    assert result["date"] == "2024-03-02"
+def test_fetch_all_parses_fields():
+    with patch("pension_crawler.requests.get", return_value=make_mock_response(MOCK_API_RESPONSE)):
+        draws = fetch_all_pension_draws()
+    d = next(x for x in draws if x["round"] == 321)
+    assert d["date"] == "2026-06-25"
+    assert d["jo"] == 5
+    assert d["number"] == "686709"
 
 
-def test_parse_returns_none_on_missing_data():
-    result = _parse_pension_draw(195, FIXTURE_NO_DATA)
-    assert result is None
+def test_fetch_latest_round():
+    with patch("pension_crawler.requests.get", return_value=make_mock_response(MOCK_API_RESPONSE)):
+        latest = fetch_latest_pension_round()
+    assert latest == 321
 
 
-def test_parse_round_number_preserved():
-    result = _parse_pension_draw(195, FIXTURE_BASIC)
-    assert result["round"] == 195
+def test_fetch_pension_draw_found():
+    with patch("pension_crawler.requests.get", return_value=make_mock_response(MOCK_API_RESPONSE)):
+        draw = fetch_pension_draw(100)
+    assert draw is not None
+    assert draw["jo"] == 2
+    assert draw["number"] == "091834"
+    assert draw["date"] == "2024-03-02"
+
+
+def test_fetch_pension_draw_not_found():
+    with patch("pension_crawler.requests.get", return_value=make_mock_response(MOCK_API_RESPONSE)):
+        draw = fetch_pension_draw(999)
+    assert draw is None
+
+
+def test_number_zero_padded():
+    with patch("pension_crawler.requests.get", return_value=make_mock_response(MOCK_API_RESPONSE)):
+        draws = fetch_all_pension_draws()
+    d = next(x for x in draws if x["round"] == 100)
+    assert d["number"] == "091834"
+    assert len(d["number"]) == 6
