@@ -81,6 +81,28 @@ def admin_logout():
     return redirect("/admin/login")
 
 
+@app.route("/admin")
+def admin_panel():
+    if not session.get("admin"):
+        return redirect("/admin/login")
+    keys = db.get_all_license_keys()
+    return render_template("admin.html", keys=keys)
+
+
+@app.route("/api/admin/generate", methods=["POST"])
+def api_admin_generate():
+    if not session.get("admin"):
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    order_id = str(data.get("order_id", "")).strip()
+    note = str(data.get("note", "")).strip()
+    if not order_id:
+        return jsonify({"error": "주문번호를 입력해주세요"}), 400
+    key = lic.generate_key(order_id)
+    db.save_license_key(key, order_id, note)
+    return jsonify({"key": key})
+
+
 @app.route("/")
 def index():
     db.init_db()
