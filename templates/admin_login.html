@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 로그인 — LOTTO ANALYZER</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #c9d1d9;
+        }
+        .card {
+            background: rgba(22, 27, 34, 0.9);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 40px 48px;
+            width: 380px;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+            backdrop-filter: blur(12px);
+        }
+        h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #f0f6fc;
+            letter-spacing: 0.5px;
+        }
+        .subtitle {
+            font-size: 0.8rem;
+            color: #8b949e;
+            margin-bottom: 32px;
+        }
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: #8b949e;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        input[type="password"] {
+            width: 100%;
+            background: rgba(13,17,23,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 0.95rem;
+            padding: 10px 14px;
+            outline: none;
+            margin-bottom: 20px;
+            transition: border-color 0.15s;
+        }
+        input[type="password"]:focus { border-color: rgba(88,166,255,0.5); }
+        button {
+            width: 100%;
+            background: #238636;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 10px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        button:hover { background: #2ea043; }
+        .error {
+            background: rgba(248,81,73,0.1);
+            border: 1px solid rgba(248,81,73,0.3);
+            border-radius: 6px;
+            color: #f85149;
+            font-size: 0.8rem;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+        }
+        .hint {
+            background: rgba(56,139,253,0.1);
+            border: 1px solid rgba(56,139,253,0.3);
+            border-radius: 6px;
+            color: #79c0ff;
+            font-size: 0.8rem;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>관리자 로그인</h1>
+        <p class="subtitle">LOTTO ANALYZER 관리자 패널</p>
+
+        {% if first_time %}
+        <div class="hint">첫 실행입니다. 사용할 비밀번호를 입력하면 설정됩니다.</div>
+        {% endif %}
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST">
+            <label>비밀번호</label>
+            <input type="password" name="password" autofocus placeholder="••••••••">
+            <button type="submit">{% if first_time %}비밀번호 설정 및 로그인{% else %}로그인{% endif %}</button>
+        </form>
+    </div>
+</body>
+</html>

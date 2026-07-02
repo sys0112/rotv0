@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import os
 from flask import Flask, render_template, jsonify, request, redirect, session
+from werkzeug.security import check_password_hash, generate_password_hash
 import db
 import license as lic
 import crawler
@@ -51,6 +52,33 @@ def api_license_activate():
         return jsonify({"success": False, "error": "유효하지 않은 키"}), 401
     lic.write_license_file(key)
     return jsonify({"success": True})
+
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if session.get("admin"):
+        return redirect("/admin")
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        stored_hash = db.get_admin_password_hash()
+        if stored_hash is None:
+            # First-time setup: set the password
+            db.set_admin_password_hash(generate_password_hash(password))
+            session["admin"] = True
+            return redirect("/admin")
+        if check_password_hash(stored_hash, password):
+            session["admin"] = True
+            return redirect("/admin")
+        return render_template("admin_login.html", error="비밀번호가 올바르지 않습니다", first_time=False)
+    stored_hash = db.get_admin_password_hash()
+    first_time = stored_hash is None
+    return render_template("admin_login.html", error=None, first_time=first_time)
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop("admin", None)
+    return redirect("/admin/login")
 
 
 @app.route("/")
