@@ -94,3 +94,90 @@ def get_all_pension_draws() -> list:
         {"round": r["round"], "date": r["date"], "jo": r["jo"], "number": r["number"]}
         for r in rows
     ]
+
+
+import secrets as _secrets
+
+
+def init_license_db():
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS license_keys (
+                key        TEXT PRIMARY KEY,
+                order_id   TEXT NOT NULL,
+                issued_at  TEXT NOT NULL,
+                note       TEXT NOT NULL DEFAULT ''
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS admin_config (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+
+
+def save_license_key(key: str, order_id: str, note: str = "") -> None:
+    from datetime import datetime, timezone
+    issued_at = datetime.now(timezone.utc).isoformat()
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO license_keys VALUES (?,?,?,?)",
+            (key, order_id, issued_at, note),
+        )
+        conn.commit()
+
+
+def get_license_key(key: str) -> dict | None:
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM license_keys WHERE key=?", (key,)
+        ).fetchone()
+    if row is None:
+        return None
+    return {"key": row["key"], "order_id": row["order_id"],
+            "issued_at": row["issued_at"], "note": row["note"]}
+
+
+def get_all_license_keys() -> list:
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT * FROM license_keys ORDER BY issued_at DESC"
+        ).fetchall()
+    return [{"key": r["key"], "order_id": r["order_id"],
+             "issued_at": r["issued_at"], "note": r["note"]} for r in rows]
+
+
+def get_admin_password_hash() -> str | None:
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        row = conn.execute(
+            "SELECT value FROM admin_config WHERE key='admin_password_hash'"
+        ).fetchone()
+    return row[0] if row else None
+
+
+def set_admin_password_hash(hash_value: str) -> None:
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO admin_config VALUES ('admin_password_hash', ?)",
+            (hash_value,),
+        )
+        conn.commit()
+
+
+def get_or_create_flask_secret() -> str:
+    with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
+        row = conn.execute(
+            "SELECT value FROM admin_config WHERE key='flask_secret'"
+        ).fetchone()
+        if row:
+            return row[0]
+        secret = _secrets.token_hex(32)
+        conn.execute(
+            "INSERT INTO admin_config VALUES ('flask_secret', ?)", (secret,)
+        )
+        conn.commit()
+        return secret
