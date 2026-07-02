@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOTTO ANALYZER — 라이선스 인증</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            color: #00ff41;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .scanline {
+            position: fixed; inset: 0;
+            background: repeating-linear-gradient(
+                0deg, transparent, transparent 2px,
+                rgba(0,255,65,0.02) 2px, rgba(0,255,65,0.02) 4px
+            );
+            pointer-events: none;
+        }
+        .terminal {
+            border: 1px solid #00ff41;
+            padding: 40px 48px;
+            width: 500px;
+            box-shadow: 0 0 32px rgba(0,255,65,0.2), inset 0 0 32px rgba(0,0,0,0.8);
+            position: relative;
+            z-index: 1;
+        }
+        .header { margin-bottom: 32px; }
+        .title { font-size: 1rem; letter-spacing: 2px; margin-bottom: 4px; }
+        .subtitle { font-size: 0.75rem; color: #008f24; letter-spacing: 1px; }
+        .blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .prompt { font-size: 0.8rem; color: #008f24; margin-bottom: 10px; letter-spacing: 1px; }
+        .input-wrap { position: relative; margin-bottom: 28px; }
+        input[type="text"] {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #00ff41;
+            color: #00ff41;
+            font-family: inherit;
+            font-size: 1.05rem;
+            letter-spacing: 4px;
+            width: 100%;
+            outline: none;
+            padding: 8px 0;
+            text-transform: uppercase;
+        }
+        input[type="text"]::placeholder { color: #004d14; letter-spacing: 2px; }
+        button {
+            background: transparent;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            font-family: inherit;
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            padding: 12px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.15s;
+        }
+        button:hover { background: #00ff41; color: #000; }
+        .msg { margin-top: 20px; font-size: 0.8rem; min-height: 1.2em; }
+        .msg.error { color: #ff4444; }
+        .msg.success { color: #00ff41; }
+        .shake { animation: shake 0.4s; }
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            20%,60%  { transform: translateX(-10px); }
+            40%,80%  { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+    <div class="terminal" id="terminal">
+        <div class="header">
+            <div class="title">&gt; LOTTO ANALYZER v1.0<span class="blink">_</span></div>
+            <div class="subtitle">&gt; LICENSE VERIFICATION REQUIRED</div>
+        </div>
+        <div class="prompt">&gt; 라이선스 키를 입력하세요</div>
+        <div class="input-wrap">
+            <input type="text" id="keyInput"
+                   placeholder="LOTO-XXXX-XXXX-XXXX-XXXX"
+                   maxlength="24"
+                   autocomplete="off"
+                   spellcheck="false">
+        </div>
+        <button onclick="activate()">[ ACTIVATE ]</button>
+        <div class="msg" id="msg"></div>
+    </div>
+
+    <script>
+        const input = document.getElementById('keyInput');
+
+        input.addEventListener('input', e => {
+            let raw = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+            let body = raw.startsWith('LOTO') ? raw.slice(4) : raw;
+            body = body.replace(/[^A-F0-9]/g, '');
+            let groups = [];
+            for (let i = 0; i < 16 && i < body.length; i += 4) {
+                groups.push(body.slice(i, i + 4));
+            }
+            e.target.value = groups.length ? 'LOTO-' + groups.join('-') : '';
+        });
+
+        async function activate() {
+            const key = input.value.trim();
+            const msgEl = document.getElementById('msg');
+            const terminal = document.getElementById('terminal');
+            msgEl.textContent = '> 인증 중...';
+            msgEl.className = 'msg';
+
+            let r, d;
+            try {
+                r = await fetch('/api/license/activate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key })
+                });
+                d = await r.json();
+            } catch {
+                msgEl.textContent = '> 오류가 발생했습니다.';
+                msgEl.className = 'msg error';
+                return;
+            }
+
+            if (r.ok && d.success) {
+                msgEl.textContent = '> LICENSED ✓ 잠시 후 이동합니다...';
+                msgEl.className = 'msg success';
+                setTimeout(() => window.location.href = '/', 1200);
+            } else {
+                msgEl.textContent = '> 유효하지 않은 키입니다. 다시 확인해주세요.';
+                msgEl.className = 'msg error';
+                terminal.classList.add('shake');
+                setTimeout(() => terminal.classList.remove('shake'), 400);
+            }
+        }
+
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') activate(); });
+        input.focus();
+    </script>
+</body>
+</html>

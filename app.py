@@ -3,8 +3,9 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 import os
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, redirect, session
 import db
+import license as lic
 import crawler
 import analyzer
 import pension_crawler
@@ -12,6 +13,44 @@ import pension_analyzer
 
 _tmpl = os.environ.get("ROTTO_TEMPLATE_PATH")
 app = Flask(__name__, template_folder=_tmpl) if _tmpl else Flask(__name__)
+
+db.init_license_db()
+app.secret_key = db.get_or_create_flask_secret()
+
+_LICENSE_EXEMPT = {
+    "/license",
+    "/api/license/activate",
+    "/admin",
+    "/admin/login",
+    "/admin/logout",
+    "/api/admin/generate",
+}
+
+@app.before_request
+def check_license():
+    if request.path in _LICENSE_EXEMPT:
+        return
+    if not lic.is_licensed():
+        return redirect("/license")
+
+
+@app.route("/license")
+def license_page():
+    if lic.is_licensed():
+        return redirect("/")
+    return render_template("license.html")
+
+
+@app.route("/api/license/activate", methods=["POST"])
+def api_license_activate():
+    data = request.get_json(silent=True) or {}
+    key = str(data.get("key", "")).strip().upper()
+    if not key:
+        return jsonify({"success": False, "error": "키를 입력해주세요"}), 400
+    if not lic.validate_key(key):
+        return jsonify({"success": False, "error": "유효하지 않은 키"}), 401
+    lic.write_license_file(key)
+    return jsonify({"success": True})
 
 
 @app.route("/")

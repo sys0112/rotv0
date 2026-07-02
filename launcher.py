@@ -31,6 +31,7 @@ def _local_ip() -> str:
 
 os.environ["ROTTO_TEMPLATE_PATH"] = _resource_path("templates")
 os.environ["ROTTO_DB_PATH"] = os.path.join(_data_dir(), "lotto.db")
+os.environ["ROTTO_LICENSE_PATH"] = os.path.join(_data_dir(), "license.key")
 
 from app import app  # noqa: E402
 
