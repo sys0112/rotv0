@@ -36,6 +36,9 @@ def test_get_all_license_keys(tmp_db):
     tmp_db.save_license_key("LOTO-1111-2222-3333-4444", "ORDER-002", "테스트")
     rows = tmp_db.get_all_license_keys()
     assert len(rows) == 2
+    keys_returned = {r["key"] for r in rows}
+    assert "LOTO-AAAA-BBBB-CCCC-DDDD" in keys_returned
+    assert "LOTO-1111-2222-3333-4444" in keys_returned
 
 def test_admin_password_hash_none_initially(tmp_db):
     tmp_db.init_license_db()

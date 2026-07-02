@@ -1,6 +1,8 @@
 import contextlib
 import os
+import secrets as _secrets
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 DB_PATH = os.environ.get("ROTTO_DB_PATH", str(Path(__file__).parent / "lotto.db"))
@@ -96,9 +98,6 @@ def get_all_pension_draws() -> list:
     ]
 
 
-import secrets as _secrets
-
-
 def init_license_db():
     with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
         conn.execute("""
@@ -119,7 +118,7 @@ def init_license_db():
 
 
 def save_license_key(key: str, order_id: str, note: str = "") -> None:
-    from datetime import datetime, timezone
+    # Keys are immutable once issued; duplicate keys are silently ignored
     issued_at = datetime.now(timezone.utc).isoformat()
     with contextlib.closing(sqlite3.connect(DB_PATH)) as conn:
         conn.execute(
